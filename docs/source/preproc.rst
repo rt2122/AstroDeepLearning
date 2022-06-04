@@ -1,4 +1,4 @@
 preproc
 =======
-.. automodule:: preproc.Planck
+.. automodule:: preproc
     :members:
