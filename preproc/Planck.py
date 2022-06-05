@@ -43,7 +43,7 @@ def match_channels(indir: str, channels: List[int]) -> Dict[int, str]:
 
 
 def normalize_asym(i_data: np.ndarray, p: Tuple[float] = (10**-3, 0.99),
-                   n_bins: int = 500) -> np.ndarray:
+                   n_bins: int = 500, outlier_thr: float = 10**4) -> np.ndarray:
     """Normalize data with asymmetrical distribution
     by fitting Gauss curve to left wing of the distribution.
 
@@ -53,6 +53,8 @@ def normalize_asym(i_data: np.ndarray, p: Tuple[float] = (10**-3, 0.99),
     :type p: Tuple[float]
     :param n_bins: Number of bins for histogram.
     :type n_bins: int
+    :param outlier_thr: Threshold for finding the outliers.
+    :type outlier_thr: float
     :rtype: np.ndarray
     """
     # Narrow down histogram
@@ -69,4 +71,18 @@ def normalize_asym(i_data: np.ndarray, p: Tuple[float] = (10**-3, 0.99),
     left_mirrored = np.concatenate([left_wing, -left_wing + 2 * mean])
 
     std = np.std(left_mirrored)
-    return (i_data - mean) / std
+    result = (i_data - mean) / std
+
+    # Find deviation from median and scale it
+    med = np.median(result)
+    dev = np.abs(result - med)
+    dev /= np.median(dev)
+
+    # Replace outliers with the closest appropriate value
+    if any(idx := ((dev > outlier_thr) & (result < med))):
+        mask_val = result[~idx].min()
+        result[idx] = mask_val
+    if any(idx := ((dev > outlier_thr) & (result > med))):
+        mask_val = result[~idx].max()
+        result[idx] = mask_val
+    return result
