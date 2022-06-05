@@ -1,4 +1,9 @@
 import numpy as np
+import pandas as pd
+from astropy.coordinates import SkyCoord
+from astropy import units as u
+import healpy as hp
+from typing import Union, List
 
 
 def recursive_fill(matr: np.ndarray) -> None:
@@ -39,3 +44,126 @@ def one_pixel_fragmentation(o_nside: int, o_pix: int, f_nside: int) -> np.ndarra
     f_matr = np.full((m_len, m_len), o_pix)
     recursive_fill(f_matr)
     return f_matr
+
+
+def radec2pix(ra: float, dec: float, nside: int, nest: bool = True) -> np.ndarray:
+    """Transform RA, Dec coordinates into HEALPix pixel index.
+
+    :param ra: RA value.
+    :type ra: float
+    :param dec: Dec value.
+    :type dec: float
+    :param nside: nside parameter for HEALPix.
+    :type nside: int
+    :param nest: flag for nested scheme.
+    :type nest: bool
+    :rtype: np.ndarray
+    """
+
+    sc = SkyCoord(ra=np.array(ra)*u.degree, dec=np.array(dec)*u.degree, frame='icrs')
+    return hp.ang2pix(nside, sc.galactic.l.degree, sc.galactic.b.degree,
+                      nest=nest, lonlat=True)
+
+
+def flat_arr2matr(h_arr: np.ndarray, pix_matr: np.ndarray) -> np.ndarray:
+    """Transform flat HEALPix array into 2x2 matrix with given correspondence matrix that was
+    created with one_pixel_fragmentation  method.
+
+    :param h_arr: Flat HEALPix array.
+    :type h_arr: np.ndarray
+    :param pix_matr: Correspondence matrix.
+    :type pix_matr: np.ndarray
+    :rtype: np.ndarray
+    """
+    img = np.zeros_like(pix_matr, dtype=h_arr.dtype)
+    for i in range(pix_matr.shape[0]):
+        img[i] = h_arr[pix_matr[i]]
+    return img
+
+
+def draw_circles(ras: np.ndarray, decs: np.ndarray, radiuses: Union[np.ndarray, float], nside: int,
+                 pix_matr: np.ndarray, centers_in_patch: bool = False) -> np.ndarray:
+    """For each pair of RA, Dec coordinates, draw circle with given radius in HEALPix projection.
+
+    :param ras: RA coordinates.
+    :type ras: np.ndarray
+    :param decs: Dec coordinates.
+    :type decs: np.ndarray
+    :param radiuses: Radiuses in degrees.
+    :type radiuses: Union[np.ndarray, float]
+    :param nside: nside for HEALPix.
+    :type nside: int
+    :param pix_matr: Correspondence matrix for HEALPix.
+    :type pix_matr: np.ndarray
+    :param centers_in_patch: If this flag is true, circles will only be drawn if their radiuses are
+        inside given correspondence matrix.
+    :type centers_in_patch: bool
+    :rtype: np.ndarray
+    """
+
+    h_arr = np.zeros(hp.nside2npix(nside), dtype=np.int8)
+    if type(radiuses) != np.ndarray:
+        radiuses = [radiuses] * len(ras)
+    for ra, dec, radius in zip(ras, decs, radiuses):
+        sc = SkyCoord(ra=ra*u.degree, dec=dec*u.degree, frame='icrs')
+        vec = hp.ang2vec(theta=sc.galactic.l.degree, phi=sc.galactic.b.degree, lonlat=True)
+        if centers_in_patch:
+            cl_pix = hp.vec2pix(nside, *vec, nest=True)
+            if not (cl_pix in pix_matr):
+                continue
+        pix = hp.query_disc(nside, vec, np.radians(radius), nest=True, inclusive=True)
+        h_arr[pix] = 1
+    pic = flat_arr2matr(h_arr, pix_matr)
+    return pic
+
+
+def draw_dots(ras: np.ndarray, decs: np.ndarray, nside: int, pix_matr: np.ndarray) -> np.ndarray:
+    """For each pair of RA, Dec coordinates, draw dot in HEALPix projection.
+
+    :param ras: RA coordinates.
+    :type ras: np.ndarray
+    :param decs: Dec coordinates.
+    :type decs: np.ndarray
+    :param nside: nside for HEALPix.
+    :type nside: int
+    :param pix_matr: Correspondence matrix for HEALPix.
+    :type pix_matr: np.ndarray
+    :rtype: np.ndarray
+    """
+
+    h_arr = np.zeros(hp.nside2npix(nside), dtype=np.int8)
+    h_arr[radec2pix(ras, decs, nside)] = 1
+    pic = flat_arr2matr(h_arr, pix_matr)
+    return pic
+
+
+def generate_patch_coords(cats: List[str], step: int = 20, o_nside: int = 2,
+                          nside: int = 2**11, radius: float = 1.83) -> pd.DataFrame:
+    """Create list of dots from which patches can be generated. Each patch will contain at least
+    one object from chosen catalogs.
+
+    :param cats: List of pathes for catalogs.
+    :type cats: List[str]
+    :param step: Step for coordinates (to lessen the size of output table).
+    :type step: int
+    :param o_nside: Original nside.
+    :type o_nside: int
+    :param nside: Final nside.
+    :type nside: int
+    :rtype: pd.DataFrame
+    """
+
+    df = pd.concat([pd.read_csv(cat) for cat in cats])
+    all_idx = {"x": [], "y": [], "pix2": []}
+    for i in range(48):
+        pix_matr = one_pixel_fragmentation(o_nside, i, nside)
+        pic = draw_circles(df["RA"], df["DEC"], radiuses=radius, nside=nside, pix_matr=pix_matr)
+        idx = np.array(np.where(pic[:-64, :-64]))[:, ::step]
+        all_idx["x"].append(idx[0])
+        all_idx["y"].append(idx[1])
+        all_idx["pix2"].append(np.full(idx.shape[1], i))
+
+    for key in all_idx:
+        all_idx[key] = np.concatenate(all_idx[key])
+    all_idx = pd.DataFrame(all_idx, index=np.arange(len(all_idx["x"])))
+    return all_idx

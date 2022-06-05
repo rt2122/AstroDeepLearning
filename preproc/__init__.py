@@ -1,6 +1,6 @@
 from .Planck import extract_data_key, match_channels, normalize_asym
-from .HEALPix import one_pixel_fragmentation
+from .HEALPix import one_pixel_fragmentation, draw_circles, draw_dots, radec2pix, flat_arr2matr
 from .preproc import fits2df
 
 __all__ = ["extract_data_key", "match_channels", "normalize_asym", "one_pixel_fragmentation",
-           "fits2df"]
+           "fits2df", "draw_dots", "draw_circles", "radec2pix", "flat_arr2matr"]
