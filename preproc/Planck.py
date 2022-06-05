@@ -79,10 +79,12 @@ def normalize_asym(i_data: np.ndarray, p: Tuple[float] = (10**-3, 0.99),
     dev /= np.median(dev)
 
     # Replace outliers with the closest appropriate value
-    if any(idx := ((dev > outlier_thr) & (result < med))):
+    idx = (dev > outlier_thr) & (result < med)
+    if any(idx):
         mask_val = result[~idx].min()
         result[idx] = mask_val
-    if any(idx := ((dev > outlier_thr) & (result > med))):
+    idx = (dev > outlier_thr) & (result > med)
+    if any(idx):
         mask_val = result[~idx].max()
         result[idx] = mask_val
     return result

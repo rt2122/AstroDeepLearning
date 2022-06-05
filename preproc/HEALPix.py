@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import os
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 import healpy as hp
@@ -137,8 +138,8 @@ def draw_dots(ras: np.ndarray, decs: np.ndarray, nside: int, pix_matr: np.ndarra
     return pic
 
 
-def generate_patch_coords(cats: List[str], step: int = 20, o_nside: int = 2,
-                          nside: int = 2**11, radius: float = 1.83) -> pd.DataFrame:
+def generate_patch_coords(cats: List[str], step: int = 20, o_nside: int = 2, nside: int = 2**11,
+                          radius: float = 1.83, patch_size: int = 64) -> pd.DataFrame:
     """Create list of dots from which patches can be generated. Each patch will contain at least
     one object from chosen catalogs.
 
@@ -150,12 +151,16 @@ def generate_patch_coords(cats: List[str], step: int = 20, o_nside: int = 2,
     :type o_nside: int
     :param nside: Final nside.
     :type nside: int
+    :param radius: Radius of area for patches.
+    :type radius: float
+    :param patch_size: Size of a patch.
+    :type patch_size: int
     :rtype: pd.DataFrame
     """
 
     df = pd.concat([pd.read_csv(cat) for cat in cats])
     all_idx = {"x": [], "y": [], "pix2": []}
-    for i in range(48):
+    for i in range(hp.nside2npix(2)):
         pix_matr = one_pixel_fragmentation(o_nside, i, nside)
         pic = draw_circles(df["RA"], df["DEC"], radiuses=radius, nside=nside, pix_matr=pix_matr)
         idx = np.array(np.where(pic[:-64, :-64]))[:, ::step]
@@ -167,3 +172,27 @@ def generate_patch_coords(cats: List[str], step: int = 20, o_nside: int = 2,
         all_idx[key] = np.concatenate(all_idx[key])
     all_idx = pd.DataFrame(all_idx, index=np.arange(len(all_idx["x"])))
     return all_idx
+
+
+def draw_masks_and_save(cats: List[str], outpath: str, o_nside: int = 2, nside: int = 2**11,
+                        radius: float = 5/60) -> None:
+    """Draw masks for training.
+
+    :param cats: List of pathes for catalogs.
+    :type cats: List[str]
+    :param outpath: Path to save masks.
+    :type outpath: str
+    :param o_nside: Original nside.
+    :type o_nside: int
+    :param nside: Final nside.
+    :type nside: int
+    :param radius: Radius of masks.
+    :type radius: float
+    :rtype: None
+    """
+    df = pd.concat([pd.read_csv(cat) for cat in cats])
+    for i in range(hp.nside2npix(o_nside)):
+        pix_matr = one_pixel_fragmentation(o_nside, i, nside)
+        pic = draw_circles(df["RA"], df["DEC"], radiuses=radius, nside=nside, pix_matr=pix_matr)
+        pic = pic.reshape(pic.shape + (1,))
+        np.save(os.path.join(outpath, f"{i}.npy"), pic)
