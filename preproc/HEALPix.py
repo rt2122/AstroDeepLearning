@@ -162,14 +162,18 @@ def generate_patch_coords(cats: List[str], step: int = 20, o_nside: int = 2, nsi
     all_idx = {"x": [], "y": [], "pix2": []}
     for i in range(hp.nside2npix(2)):
         pix_matr = one_pixel_fragmentation(o_nside, i, nside)
-        pic = draw_circles(df["RA"], df["DEC"], radiuses=radius, nside=nside, pix_matr=pix_matr)
-        idx = np.array(np.where(pic[:-64, :-64]))[:, ::step]
-        all_idx["x"].append(idx[0])
-        all_idx["y"].append(idx[1])
-        all_idx["pix2"].append(np.full(idx.shape[1], i))
+        pic = draw_dots(df["RA"], df["DEC"], nside=nside, pix_matr=pix_matr)
+        xs, ys = [], []
+        for x in range(0, 1024 - 64, step):
+            for y in range(0, 1024 - 64, step):
+                if pic[x:x+patch_size, y:y+patch_size].any():
+                    xs.append(x)
+                    ys.append(y)
 
-    for key in all_idx:
-        all_idx[key] = np.concatenate(all_idx[key])
+        all_idx["x"].extend(xs)
+        all_idx["y"].extend(ys)
+        all_idx["pix2"].extend([i] * len(xs))
+
     all_idx = pd.DataFrame(all_idx, index=np.arange(len(all_idx["x"])))
     return all_idx
 
