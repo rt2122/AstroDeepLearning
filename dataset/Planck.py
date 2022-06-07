@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import os
 from typing import List, Tuple
+from matplotlib import pyplot as plt
 
 
 def split_dataframe(df: pd.DataFrame, batch_size: int) -> List[pd.DataFrame]:
@@ -55,8 +56,7 @@ class Planck_Dataset:
 
     def __init__(self, datapath: str, target_path: str, pix2: List[int], batch_size: int,
                  patch_size: int = 64, shuffle: bool = False):
-        """Initialize dataset.
-        """
+        """Initialize dataset."""
         self.datapath = datapath
         self.target_path = target_path
         self.pix2 = pix2
@@ -91,7 +91,7 @@ class Planck_Dataset:
         self.batches = split_dataframe(coords, self.batch_size)
 
     def __getitem__(self, idx: int) -> Tuple[np.ndarray]:
-        """__getitem__.
+        """Get batch.
 
         :param idx:
         :type idx: int
@@ -106,3 +106,20 @@ class Planck_Dataset:
             X.append(self.data[pix][x:x+size, y:y+size, :])
             Y.append(self.target[pix][x:x+size, y:y+size, :])
         return np.array(X), np.array(Y)
+
+    def check_data(self, idx: int = 0, batch_idx: int = 0) -> None:
+        """Fast check of data in dataset.
+
+        :param idx: Index of batch.
+        :type idx: int
+        :param batch_idx: Index within batch.
+        :type batch_idx: int
+        :rtype: None
+        """
+        X, Y = self[idx]
+        X = X[batch_idx]
+        Y = Y[batch_idx]
+        f, ax = plt.subplots(3, 3, figsize=(10, 10))
+        for i in range(6):
+            ax[i // 3][i % 3].imshow(X[:, :, i])
+        ax[2][0].imshow(Y)
