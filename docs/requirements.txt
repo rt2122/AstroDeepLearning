@@ -3,3 +3,5 @@ pandas
 healpy
 astropy
 matplotlib
+imgaug
+tqdm
