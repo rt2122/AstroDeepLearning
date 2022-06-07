@@ -11,6 +11,7 @@ Welcome to AstroDeepLearning's documentation!
    :caption: Contents:
 
    preproc
+   dataset
 
 
 Indices and tables
