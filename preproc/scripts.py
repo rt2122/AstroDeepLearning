@@ -2,10 +2,20 @@ import os
 import healpy as hp
 import numpy as np
 from tqdm import tqdm
-from . import match_channels, fits2df, normalize_asym, one_pixel_fragmentation
+from . import (match_channels, fits2df, normalize_asym, one_pixel_fragmentation,
+               draw_masks_and_save, generate_patch_coords)
 
 
 def preproc_HFI_Planck(inpath: str, outpath: str) -> None:
+    """Preprocess .fits files of 6 HFI Planck channels from `here
+        <https://irsa.ipac.caltech.edu/data/Planck/release_3/all-sky-maps/>`_.
+
+    :param inpath: Input directory.
+    :type inpath: str
+    :param outpath: Output directory.
+    :type outpath: str
+    :rtype: None
+    """
     files_by_ch = match_channels(inpath, [100, 143, 217, 353, 545, 857])
     data_by_ch = {ch: fits2df(os.path.join(inpath, file), "I_STOKES")
                   for ch, file in files_by_ch.items()}
@@ -24,4 +34,23 @@ def preproc_HFI_Planck(inpath: str, outpath: str) -> None:
                 data = data_by_ch[ch]
                 img[i, :, ch_idx] = data[pix_matr[i]]
         np.save(os.path.join(outpath, '{}.npy'.format(ipix)), img)
+    return
+
+
+def generate_masks_and_patches_Planck(inpath: str, outpath: str) -> None:
+    """
+
+    :param inpath: Directory with catalogs. Each catalog should have columns: [RA, DEC].
+    :type inpath: str
+    :param outpath: Output directory.
+    :type outpath: str
+    :rtype: None
+    """
+    files = os.listdir(inpath)
+    cats = [os.path.join(inpath, file) for file in files if file.endswith(".csv")]
+    print("Creating masks.")
+    draw_masks_and_save(cats, outpath)
+    print("Generating coordinates for patches.")
+    generate_patch_coords(cats).to_csv(os.path.join(outpath, 'pc.csv'), index=False)
+    # TODO automatically generate description
     return

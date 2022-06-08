@@ -2,7 +2,7 @@ import argparse
 import os
 import time
 import datetime
-from .scripts import preproc_HFI_Planck
+from .scripts import preproc_HFI_Planck, generate_masks_and_patches_Planck
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Preprocessing script for astronomical data.")
@@ -14,20 +14,22 @@ if __name__ == "__main__":
     parser.add_argument("--inpath", metavar="<inpath>", default=".",
                         help="Input path.")
     parser.add_argument("--outpath", metavar="<outpath>", default=".", help="Output path.")
-
     args = parser.parse_args()
+
+    if not os.path.exists(args.outpath):
+        os.mkdir(args.outpath)
+
     start_time = time.time()
     if args.data_name == "Planck":
         if args.command == "preproc":
-            if not os.path.exists(args.outpath):
-                os.mkdir(args.outpath)
             preproc_HFI_Planck(args.inpath, args.outpath)
-            finish_time = time.time()
-            diff = str(datetime.timedelta(seconds=finish_time - start_time))
-            print(f"Planck preprocessing completed in {diff}")
         elif args.command == "target":
-            print("Planck target")
+            generate_masks_and_patches_Planck(args.inpath, args.outpath)
         else:
             print("Command is not recognized.")
     else:
         print("Data name is not recognized.")
+
+    finish_time = time.time()
+    diff = str(datetime.timedelta(seconds=finish_time - start_time))
+    print(f"{args.data_name} {args.command} completed in {diff}")

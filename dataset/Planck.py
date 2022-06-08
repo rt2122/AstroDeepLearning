@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import os
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Iterator
 from matplotlib import pyplot as plt
 import imgaug.augmenters as iaa
 import warnings
@@ -41,7 +41,12 @@ class Planck_Dataset:
         ...
         ├── 47.npy
         ├── pc.csv
-        └── descr.txt
+        ├── descr.txt
+        └── cats
+            ├── PSZ2_z.csv
+            ...
+            └── MCXCwp.csv
+
 
     | i.npy - data corresponding to i'th tile of HEALPix partition with nside=2 and
       nested scheme.
@@ -57,6 +62,8 @@ class Planck_Dataset:
     +------------+------------+------------------+
     | ...        | ...        | ...              |
     +------------+------------+------------------+
+
+    | cats - directory with catalogs in .csv format. Each catalog has columns: [RA, DEC, z, M500].
 
     :param datapath: Path for Planck HFI data divided into 48 tiles.
     :type datapath: str
@@ -148,6 +155,21 @@ class Planck_Dataset:
             X, Y = do_aug(X, Y, self.augmentation)
 
         return X, Y
+
+    def __len__(self):
+        """Number of batches."""
+        return len(self.batches)
+
+    def generator(self) -> Iterator[Tuple[np.ndarray]]:
+        """Generator for training.
+
+        :rtype: Iterator[Tuple[np.ndarray]]
+        """
+        while True:
+            for i in range(len(self)):
+                yield self[i]
+            if self.shuffle:
+                self._split_batches
 
     def check_data(self, idx: int = 0, batch_idx: int = 0,
                    X: np.ndarray = None, Y: np.ndarray = None) -> None:

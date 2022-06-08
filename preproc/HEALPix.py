@@ -5,6 +5,7 @@ from astropy.coordinates import SkyCoord
 from astropy import units as u
 import healpy as hp
 from typing import Union, List
+from tqdm import tqdm
 
 
 def recursive_fill(matr: np.ndarray) -> None:
@@ -160,7 +161,7 @@ def generate_patch_coords(cats: List[str], step: int = 20, o_nside: int = 2, nsi
 
     df = pd.concat([pd.read_csv(cat) for cat in cats])
     all_idx = {"x": [], "y": [], "pix2": []}
-    for i in range(hp.nside2npix(2)):
+    for i in tqdm(range(hp.nside2npix(2))):
         pix_matr = one_pixel_fragmentation(o_nside, i, nside)
         pic = draw_dots(df["RA"], df["DEC"], nside=nside, pix_matr=pix_matr)
         xs, ys = [], []
@@ -195,7 +196,7 @@ def draw_masks_and_save(cats: List[str], outpath: str, o_nside: int = 2, nside: 
     :rtype: None
     """
     df = pd.concat([pd.read_csv(cat) for cat in cats])
-    for i in range(hp.nside2npix(o_nside)):
+    for i in tqdm(range(hp.nside2npix(o_nside))):
         pix_matr = one_pixel_fragmentation(o_nside, i, nside)
         pic = draw_circles(df["RA"], df["DEC"], radiuses=radius, nside=nside, pix_matr=pix_matr)
         pic = pic.reshape(pic.shape + (1,))
