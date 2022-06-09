@@ -5,3 +5,5 @@ astropy
 matplotlib
 imgaug
 tqdm
+tensorflow
+keras
