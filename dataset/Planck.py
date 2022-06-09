@@ -7,6 +7,10 @@ import imgaug.augmenters as iaa
 import warnings
 from .dataset import do_aug
 
+first_val = [9, 38, 41]
+first_test = [6]
+first_train = [x for x in range(48) if x not in first_val and x not in first_test]
+
 
 def split_dataframe(df: pd.DataFrame, batch_size: int) -> List[pd.DataFrame]:
     """Split DataFrame into batches of equal size.
@@ -165,11 +169,10 @@ class Planck_Dataset:
 
         :rtype: Iterator[Tuple[np.ndarray]]
         """
-        while True:
-            for i in range(len(self)):
-                yield self[i]
-            if self.shuffle:
-                self._split_batches
+        for i in range(len(self)):
+            yield self[i]
+        if self.shuffle:
+            self._split_batches
 
     def check_data(self, idx: int = 0, batch_idx: int = 0,
                    X: np.ndarray = None, Y: np.ndarray = None) -> None:
