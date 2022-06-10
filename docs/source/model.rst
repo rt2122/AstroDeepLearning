@@ -1,5 +1,5 @@
 model
 =====
 
-.. automodule:: model 
+.. automodule:: ADL.model 
     :members:

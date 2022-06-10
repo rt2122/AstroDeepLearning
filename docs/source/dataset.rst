@@ -1,4 +1,4 @@
 dataset
 =======
-.. automodule:: dataset 
+.. automodule:: ADL.dataset 
     :members:
