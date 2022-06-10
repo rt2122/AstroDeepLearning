@@ -5,9 +5,7 @@ import datetime
 from .scripts import preproc_HFI_Planck, generate_masks_and_patches_Planck
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Preprocessing script for astronomical data.")
-    parser.add_argument("data_name", metavar="<data_name>",
-                        help="'Planck' (other data will be added later)")
+    parser = argparse.ArgumentParser(description="Preprocessing script for HFI Planck data.")
     parser.add_argument("command", metavar="<command>",
                         help="'preproc' for preparing HFI Planck data.\n"
                              "'target' for generating masks and patches for Planck.")
@@ -20,16 +18,13 @@ if __name__ == "__main__":
         os.mkdir(args.outpath)
 
     start_time = time.time()
-    if args.data_name == "Planck":
-        if args.command == "preproc":
-            preproc_HFI_Planck(args.inpath, args.outpath)
-        elif args.command == "target":
-            generate_masks_and_patches_Planck(args.inpath, args.outpath)
-        else:
-            print("Command is not recognized.")
+    if args.command == "preproc":
+        preproc_HFI_Planck(args.inpath, args.outpath)
+    elif args.command == "target":
+        generate_masks_and_patches_Planck(args.inpath, args.outpath)
     else:
-        print("Data name is not recognized.")
+        print("Command is not recognized.")
 
     finish_time = time.time()
     diff = str(datetime.timedelta(seconds=finish_time - start_time))
-    print(f"{args.data_name} {args.command} completed in {diff}")
+    print(f"Planck {args.command} completed in {diff}")

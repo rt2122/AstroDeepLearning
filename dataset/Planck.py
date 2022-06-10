@@ -7,10 +7,6 @@ import imgaug.augmenters as iaa
 import warnings
 from .dataset import do_aug
 
-first_val = [9, 38, 41]
-first_test = [6]
-first_train = [x for x in range(48) if x not in first_val and x not in first_test]
-
 
 def split_dataframe(df: pd.DataFrame, batch_size: int) -> List[pd.DataFrame]:
     """Split DataFrame into batches of equal size.
@@ -34,7 +30,7 @@ class Planck_Dataset:
     Organization for directories:
     ::
 
-        datapath
+        data_path
         ├── 0.npy
         ├── 1.npy
         ...
@@ -69,8 +65,8 @@ class Planck_Dataset:
 
     | cats - directory with catalogs in .csv format. Each catalog has columns: [RA, DEC, z, M500].
 
-    :param datapath: Path for Planck HFI data divided into 48 tiles.
-    :type datapath: str
+    :param data_path: Path for Planck HFI data divided into 48 tiles.
+    :type data_path: str
     :param target_path: Path for masks and patch coordinates.
     :type target_path: str
     :param pix2: List of pixels of nside=2 HEALPix partition.
@@ -86,12 +82,12 @@ class Planck_Dataset:
     :type augmentation: Union[iaa.Augmenter, str]
     """
 
-    def __init__(self, datapath: str, target_path: str, pix2: List[int], batch_size: int,
+    def __init__(self, data_path: str, target_path: str, pix2: List[int], batch_size: int,
                  patch_size: int = 64, shuffle: bool = False,
                  augmentation: Union[iaa.Augmenter, str] = None):
         """Initialize dataset."""
 
-        self.datapath = datapath
+        self.data_path = data_path
         self.target_path = target_path
         self.pix2 = pix2
         self.batch_size = batch_size
@@ -118,7 +114,7 @@ class Planck_Dataset:
         self.data = {}
         self.target = {}
         for i in self.pix2:
-            self.data[i] = np.load(os.path.join(self.datapath, f"{i}.npy"))
+            self.data[i] = np.load(os.path.join(self.data_path, f"{i}.npy"))
             self.target[i] = np.load(os.path.join(self.target_path, f"{i}.npy"))
         coords = pd.read_csv(os.path.join(self.target_path, "pc.csv"))
         coords = coords[np.in1d(coords["pix2"], self.pix2)]
