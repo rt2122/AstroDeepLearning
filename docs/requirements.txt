@@ -7,3 +7,4 @@ imgaug
 tqdm
 tensorflow
 keras
+sphinx-argparse
