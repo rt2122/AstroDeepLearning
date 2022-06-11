@@ -1,4 +1,6 @@
 """
+Module for processing Planck data.
+
 This module deals with the pre-processing of HFI data from Planck maps.
 These functions transform all-sky maps into HEALPix tiles, according to which the data is split
 into training, validation, and test. After that, the samples themselves are generated.
@@ -26,7 +28,7 @@ def extract_data_key(path: str, key: str, idx: int = 1) -> np.ndarray:
 
 
 def match_channels(indir: str, channels: List[int]) -> Dict[int, str]:
-    """For each channel find corresponding file
+    """For each channel find corresponding file.
 
     :param indir: Input dir.
     :type indir: str
@@ -44,8 +46,9 @@ def match_channels(indir: str, channels: List[int]) -> Dict[int, str]:
 
 def normalize_asym(i_data: np.ndarray, p: Tuple[float] = (10**-3, 0.99),
                    n_bins: int = 500, outlier_thr: float = 10**4) -> np.ndarray:
-    """Normalize data with asymmetrical distribution
-    by fitting Gauss curve to left wing of the distribution.
+    """Normalize data with asymmetrical distribution.
+
+    (By fitting Gauss curve to left wing of the distribution).
 
     :param i_data: Data with asymmetrical distribution.
     :type i_data: np.ndarray

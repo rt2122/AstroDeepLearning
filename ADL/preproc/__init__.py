@@ -1,3 +1,4 @@
+"""Init file."""
 from .Planck import extract_data_key, match_channels, normalize_asym
 from .HEALPix import (one_pixel_fragmentation, draw_circles, draw_dots, radec2pix, flat_arr2matr,
                       generate_patch_coords, draw_masks_and_save)

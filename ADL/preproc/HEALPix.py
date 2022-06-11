@@ -1,3 +1,4 @@
+"""Module for HEALPix functions."""
 import numpy as np
 import pandas as pd
 import os
@@ -61,14 +62,15 @@ def radec2pix(ra: float, dec: float, nside: int, nest: bool = True) -> np.ndarra
     :type nest: bool
     :rtype: np.ndarray
     """
-
     sc = SkyCoord(ra=np.array(ra)*u.degree, dec=np.array(dec)*u.degree, frame='icrs')
     return hp.ang2pix(nside, sc.galactic.l.degree, sc.galactic.b.degree,
                       nest=nest, lonlat=True)
 
 
 def flat_arr2matr(h_arr: np.ndarray, pix_matr: np.ndarray) -> np.ndarray:
-    """Transform flat HEALPix array into 2x2 matrix with given correspondence matrix that was
+    """Transform flat HEALPix array into 2d matrix with given correspondence matrix.
+
+    Correspondence matrix should be
     created with one_pixel_fragmentation  method.
 
     :param h_arr: Flat HEALPix array.
@@ -102,7 +104,6 @@ def draw_circles(ras: np.ndarray, decs: np.ndarray, radiuses: Union[np.ndarray, 
     :type centers_in_patch: bool
     :rtype: np.ndarray
     """
-
     h_arr = np.zeros(hp.nside2npix(nside), dtype=np.int8)
     if type(radiuses) != np.ndarray:
         radiuses = [radiuses] * len(ras)
@@ -132,7 +133,6 @@ def draw_dots(ras: np.ndarray, decs: np.ndarray, nside: int, pix_matr: np.ndarra
     :type pix_matr: np.ndarray
     :rtype: np.ndarray
     """
-
     h_arr = np.zeros(hp.nside2npix(nside), dtype=np.int8)
     h_arr[radec2pix(ras, decs, nside)] = 1
     pic = flat_arr2matr(h_arr, pix_matr)
@@ -141,8 +141,9 @@ def draw_dots(ras: np.ndarray, decs: np.ndarray, nside: int, pix_matr: np.ndarra
 
 def generate_patch_coords(cats: List[str], step: int = 20, o_nside: int = 2, nside: int = 2**11,
                           radius: float = 1.83, patch_size: int = 64) -> pd.DataFrame:
-    """Create list of dots from which patches can be generated. Each patch will contain at least
-    one object from chosen catalogs.
+    """Create list of dots from which patches can be generated.
+
+    Each patch will contain at least one object from chosen catalogs.
 
     :param cats: List of pathes for catalogs.
     :type cats: List[str]
@@ -158,7 +159,6 @@ def generate_patch_coords(cats: List[str], step: int = 20, o_nside: int = 2, nsi
     :type patch_size: int
     :rtype: pd.DataFrame
     """
-
     df = pd.concat([pd.read_csv(cat) for cat in cats])
     all_idx = {"x": [], "y": [], "pix2": []}
     for i in tqdm(range(hp.nside2npix(2))):

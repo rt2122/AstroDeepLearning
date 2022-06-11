@@ -1,3 +1,4 @@
+"""General module for all datasets."""
 import numpy as np
 from imgaug.augmenters import Augmenter
 from typing import Tuple

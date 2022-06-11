@@ -1,10 +1,16 @@
+"""Module for preprocessing data."""
 import argparse
 import os
 import time
 import datetime
 from .scripts import preproc_HFI_Planck, generate_masks_and_patches_Planck
 
-if __name__ == "__main__":
+
+def make_parser() -> argparse.ArgumentParser:
+    """Create parser.
+
+    :rtype: argparse.ArgumentParser
+    """
     parser = argparse.ArgumentParser(description="Preprocessing script for HFI Planck data.")
     parser.add_argument("command", metavar="<command>",
                         help="'preproc' for preparing HFI Planck data.\n"
@@ -12,7 +18,11 @@ if __name__ == "__main__":
     parser.add_argument("--inpath", metavar="<inpath>", default=".",
                         help="Input path.")
     parser.add_argument("--outpath", metavar="<outpath>", default=".", help="Output path.")
-    args = parser.parse_args()
+    return parser
+
+
+if __name__ == "__main__":
+    args = make_parser().parse_args()
 
     if not os.path.exists(args.outpath):
         os.mkdir(args.outpath)

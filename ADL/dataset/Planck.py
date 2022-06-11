@@ -1,3 +1,4 @@
+"""Module for Planck Dataset."""
 import numpy as np
 import pandas as pd
 import os
@@ -86,7 +87,6 @@ class Planck_Dataset:
                  patch_size: int = 64, shuffle: bool = False,
                  augmentation: Union[iaa.Augmenter, str] = None):
         """Initialize dataset."""
-
         self.data_path = data_path
         self.target_path = target_path
         self.pix2 = pix2
@@ -157,11 +157,11 @@ class Planck_Dataset:
         return X, Y
 
     def __len__(self):
-        """Number of batches."""
+        """Return the number of batches."""
         return len(self.batches)
 
     def generator(self) -> Iterator[Tuple[np.ndarray]]:
-        """Generator for training.
+        """Generate batches for training.
 
         :rtype: Iterator[Tuple[np.ndarray]]
         """

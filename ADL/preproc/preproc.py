@@ -1,3 +1,4 @@
+"""General preprocessing module for all data."""
 from astropy.io import fits
 from astropy.table import Table
 import numpy as np
@@ -14,7 +15,6 @@ def fits2df(fitspath: str, one_col: str = None) -> Union[pd.DataFrame, np.ndarra
     :type one_col: str
     :rtype: Union[pd.DataFrame, np.ndarray]
     """
-
     df = None
     with fits.open(fitspath) as hdul:
         if not (one_col is None):

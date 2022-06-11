@@ -1,3 +1,4 @@
+"""Module with scripts for preprocessing data."""
 import os
 import healpy as hp
 import numpy as np
@@ -7,7 +8,9 @@ from . import (match_channels, fits2df, normalize_asym, one_pixel_fragmentation,
 
 
 def preproc_HFI_Planck(inpath: str, outpath: str) -> None:
-    """Preprocess .fits files of 6 HFI Planck channels from `here
+    """Preprocess .fits files of 6 HFI Planck channels.
+
+    Data can be accessed `here
         <https://irsa.ipac.caltech.edu/data/Planck/release_3/all-sky-maps/>`_.
 
     :param inpath: Input directory.
@@ -38,7 +41,7 @@ def preproc_HFI_Planck(inpath: str, outpath: str) -> None:
 
 
 def generate_masks_and_patches_Planck(inpath: str, outpath: str) -> None:
-    """
+    """Generate target data.
 
     :param inpath: Directory with catalogs. Each catalog should have columns: [RA, DEC].
     :type inpath: str
