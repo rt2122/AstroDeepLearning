@@ -13,6 +13,7 @@ Welcome to AstroDeepLearning's documentation!
    preproc
    dataset
    model
+   visual
 
 
 Indices and tables
