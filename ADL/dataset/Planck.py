@@ -85,7 +85,7 @@ class Planck_Dataset:
 
     def __init__(self, data_path: str, target_path: str, pix2: List[int], batch_size: int,
                  patch_size: int = 64, shuffle: bool = False,
-                 augmentation: Union[iaa.Augmenter, str] = None):
+                 augmentation: Union[iaa.Augmenter, str] = "default"):
         """Initialize dataset."""
         self.data_path = data_path
         self.target_path = target_path
@@ -171,7 +171,7 @@ class Planck_Dataset:
             self._split_batches
 
     def check_data(self, idx: int = 0, batch_idx: int = 0,
-                   X: np.ndarray = None, Y: np.ndarray = None) -> None:
+                   X: np.ndarray = None, Y: np.ndarray = None, pred: np.ndarray = None) -> None:
         """Fast check of data in dataset.
 
         :param idx: Index of batch.
@@ -192,3 +192,8 @@ class Planck_Dataset:
         for i in range(6):
             ax[i // 3][i % 3].imshow(X[:, :, i])
         ax[2][0].imshow(Y)
+        ax[2][0].set_xlabel("Ground truth")
+
+        if pred is not None:
+            ax[2][1].imshow(pred[batch_idx])
+            ax[2][1].set_xlabel("Prediction")

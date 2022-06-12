@@ -117,7 +117,7 @@ class ADL_Unet:
         :rtype: None
         """
         df = pd.concat(map(lambda x: pd.DataFrame(x, index=[0]), self.history))
-        df.index = np.arange(len(df))
+        df.index = np.arange(1, len(df) + 1)
         df.index.name = "epoch"
         df.to_csv(os.path.join(os.path.dirname(self.model_path), 'history.csv'))
 
