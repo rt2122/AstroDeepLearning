@@ -18,6 +18,8 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument("--inpath", metavar="<inpath>", default=".",
                         help="Input path.")
     parser.add_argument("--outpath", metavar="<outpath>", default=".", help="Output path.")
+    parser.add_argument("--n_patches", metavar="<n_patches>", default="100000",
+                        help="Approximate amount of patches to generate.")
     return parser
 
 
@@ -31,7 +33,7 @@ if __name__ == "__main__":
     if args.command == "preproc":
         preproc_HFI_Planck(args.inpath, args.outpath)
     elif args.command == "target":
-        generate_masks_and_patches_Planck(args.inpath, args.outpath)
+        generate_masks_and_patches_Planck(args.inpath, args.outpath, args.n_patches)
     else:
         print("Command is not recognized.")
 

@@ -40,13 +40,15 @@ def preproc_HFI_Planck(inpath: str, outpath: str) -> None:
     return
 
 
-def generate_masks_and_patches_Planck(inpath: str, outpath: str) -> None:
+def generate_masks_and_patches_Planck(inpath: str, outpath: str, n_patches: str) -> None:
     """Generate target data.
 
     :param inpath: Directory with catalogs. Each catalog should have columns: [RA, DEC].
     :type inpath: str
     :param outpath: Output directory.
     :type outpath: str
+    :param n_patches: Approximate amount of patches.
+    :type n_patches: str
     :rtype: None
     """
     files = os.listdir(inpath)
@@ -54,6 +56,8 @@ def generate_masks_and_patches_Planck(inpath: str, outpath: str) -> None:
     print("Creating masks.")
     draw_masks_and_save(cats, outpath)
     print("Generating coordinates for patches.")
-    generate_patch_coords(cats).to_csv(os.path.join(outpath, 'pc.csv'), index=False)
-    # TODO automatically generate description
+    patches = generate_patch_coords(cats, n_patches=int(n_patches))
+    patches.to_csv(os.path.join(outpath, "pc.csv"), index=False)
+    print(f"Number of patches generated: {len(patches)}.")
+    # TODO automatically generate description (number of patches for each pixel + catalogs)
     return

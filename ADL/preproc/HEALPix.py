@@ -140,7 +140,8 @@ def draw_dots(ras: np.ndarray, decs: np.ndarray, nside: int, pix_matr: np.ndarra
 
 
 def generate_patch_coords(cats: List[str], step: int = 20, o_nside: int = 2, nside: int = 2**11,
-                          radius: float = 1.83, patch_size: int = 64) -> pd.DataFrame:
+                          radius: float = 1.83, patch_size: int = 64,
+                          n_patches: int = None) -> pd.DataFrame:
     """Create list of dots from which patches can be generated.
 
     Each patch will contain at least one object from chosen catalogs.
@@ -157,8 +158,12 @@ def generate_patch_coords(cats: List[str], step: int = 20, o_nside: int = 2, nsi
     :type radius: float
     :param patch_size: Size of a patch.
     :type patch_size: int
+    :param n_patches: Approximate amount of patches to generate. Overrides step parameter.
+    :type n_patches: int
     :rtype: pd.DataFrame
     """
+    if n_patches is not None:
+        step = 1
     df = pd.concat([pd.read_csv(cat) for cat in cats])
     all_idx = {"x": [], "y": [], "pix2": []}
     for i in tqdm(range(hp.nside2npix(2))):
@@ -176,6 +181,11 @@ def generate_patch_coords(cats: List[str], step: int = 20, o_nside: int = 2, nsi
         all_idx["pix2"].extend([i] * len(xs))
 
     all_idx = pd.DataFrame(all_idx, index=np.arange(len(all_idx["x"])))
+
+    if n_patches is not None and len(all_idx) > n_patches:
+        step = len(all_idx) // n_patches
+        all_idx = all_idx.loc[::step]
+        all_idx.index = np.arange(len(all_idx))
     return all_idx
 
 
