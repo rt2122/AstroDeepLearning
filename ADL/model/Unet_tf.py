@@ -84,7 +84,7 @@ class ADL_Unet:
         self.model = Unet_model(input_shape, n_filters, n_blocks, n_output_layers, lr,
                                 add_batch_norm, dropout_rate, weights)
         self.checkpoint = ModelCheckpoint(model_path, monitor='val_loss', verbose=1,
-                                          save_best_only=True, mode='min', save_weights_only=False)
+                                          save_best_only=False, mode='min', save_weights_only=False)
 
         self.model_path = model_path
         self.history = []

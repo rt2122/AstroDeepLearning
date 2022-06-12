@@ -5,8 +5,9 @@ from ADL.model import pixels as p
 import os
 
 
-def train_Planck_Unet(data_path: str, target_path: str, model_path: str, pixels: str,
-                      pretrained: str, batch_size: str, epochs: str, device: str) -> None:
+def train_Planck_Unet(model_name: str, data_path: str, target_path: str, model_path: str,
+                      pixels: str, pretrained: str, batch_size: str, epochs: str,
+                      device: str) -> None:
     """Full process of training.
 
     :param data_path: Path to data.
@@ -36,7 +37,7 @@ def train_Planck_Unet(data_path: str, target_path: str, model_path: str, pixels:
         print("Pixels parameter is not recognized.")
         return
 
-    if not os.isdir(model_path):
+    if not os.path.isdir(model_path):
         os.mkdir(model_path)
 
     weights = None
@@ -49,5 +50,5 @@ def train_Planck_Unet(data_path: str, target_path: str, model_path: str, pixels:
                                  pix2=pix_dict["val"], batch_size=int(batch_size))
     dataset_val.prepare()
 
-    model = ADL_Unet(model_path, weights=weights)
+    model = ADL_Unet(os.path.join(model_path, model_name + "-ep{epoch}.hdf5"), weights=weights)
     model.train(dataset_train, dataset_val, int(epochs))
