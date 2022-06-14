@@ -5,7 +5,7 @@ import os
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 import healpy as hp
-from typing import Union, List
+from typing import Union, List, Tuple
 from tqdm import tqdm
 
 
@@ -65,6 +65,23 @@ def radec2pix(ra: float, dec: float, nside: int, nest: bool = True) -> np.ndarra
     sc = SkyCoord(ra=np.array(ra)*u.degree, dec=np.array(dec)*u.degree, frame='icrs')
     return hp.ang2pix(nside, sc.galactic.l.degree, sc.galactic.b.degree,
                       nest=nest, lonlat=True)
+
+
+def pix2radec(ipix: int, nside: int, nest: bool = True) -> Tuple[Union[float, List[float]]]:
+    """Transform HEALPix pixel index into RA, Dec coordinates.
+
+    :param ipix: Index of pixel.
+    :type ipix: int
+    :param nside: nside parameter for HEALPix.
+    :type nside: int
+    :param nest: flag for nested scheme.
+    :type nest: bool
+    :rtype: Tuple[Optional[float, List[float]]]
+    """
+    theta, phi = hp.pix2ang(nside, ipix=np.array(ipix), nest=nest, lonlat=True)
+
+    sc = SkyCoord(l=theta*u.degree, b=phi*u.degree, frame='galactic')
+    return sc.icrs.ra.degree, sc.icrs.dec.degree
 
 
 def flat_arr2matr(h_arr: np.ndarray, pix_matr: np.ndarray) -> np.ndarray:
