@@ -14,6 +14,7 @@ Welcome to AstroDeepLearning's documentation!
    dataset
    model
    visual
+   other
 
 
 Indices and tables

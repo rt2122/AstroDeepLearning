@@ -8,3 +8,4 @@ tqdm
 tensorflow
 keras
 sphinx-argparse
+scikit-image
