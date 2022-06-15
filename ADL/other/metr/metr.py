@@ -1,7 +1,9 @@
+"""Module with functions for calculating metrics for catalogs."""
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 import numpy as np
 import pandas as pd
+import os
 from typing import List, Dict, Union
 from collections.abc import Callable
 from ADL.preproc import radec2pix
@@ -102,8 +104,8 @@ def cut_cat_by_pix(df: pd.DataFrame, big_pix: List[int]) -> pd.DataFrame:
     return df
 
 
-def new_cut_cat(df: pd.DataFrame, dict_cut: Dict[str, Callable[[float], bool]] = {},
-                big_pix: List[int] = None) -> pd.DataFrame:
+def cut_cat(df: pd.DataFrame, dict_cut: Dict[str, Callable[[float], bool]] = {},
+            big_pix: List[int] = None) -> pd.DataFrame:
     """For input catalog remove all objects, that don't fit conditions.
 
     :param df: Input catalog.
@@ -120,8 +122,46 @@ def new_cut_cat(df: pd.DataFrame, dict_cut: Dict[str, Callable[[float], bool]] =
         df['b'] = sc.galactic.b.degree
         df['l'] = sc.galactic.l.degree
     for prm, func in dict_cut.items():
-        df = df.loc[map(func, df[prm])]
-        df.index = np.arange(len(df))
+        if prm in df:
+            df = df.loc[map(func, df[prm])]
+            df.index = np.arange(len(df))
     if not (big_pix is None):
         df = cut_cat_by_pix(df, big_pix)
     return df
+
+
+def cats2dict(dir_path: str) -> Dict[str, pd.DataFrame]:
+    """Put all catalogs from directory into dictionary.
+
+    :param dir_path: Path to directory.
+    :type dir_path: str
+    :rtype: Dict[str, pd.DataFrame]
+    """
+    files = os.listdir(dir_path)
+    files = list(filter(lambda x: x.endswith(".csv"), files))
+    true_cats = {file[:-4]: pd.read_csv(os.path.join(dir_path, file)) for file in files}
+    return true_cats
+
+
+def stats_with_rules(det_cat: pd.DataFrame, true_cats: List[pd.DataFrame], rules: Dict = {},
+                     big_pix: List[int] = None, match_dist: float = 5/60,
+                     spec_precision: List[str] = []):
+    """Calculate metrics for detected catalog with selected rules.
+
+    :param det_cat: Detected catalog.
+    :type det_cat: pd.DataFrame
+    :param true_cats: Dictionary with ground truth catalogs.
+    :type true_cats: List[pd.DataFrame]
+    :param rules: Rules for filtering catalogs.
+    :type rules: Dict
+    :param big_pix: List of HEALPix pixels with nside=2.
+    :type big_pix: List[int]
+    :param match_dist: Match distance.
+    :type match_dist: float
+    :param spec_precision: List of catalogs for which precision will be calcilated separately.
+    :type spec_precision: List[str]
+    """
+    det_cat = cut_cat(det_cat, rules, big_pix)
+    true_cats = {name: cut_cat(cat, rules, big_pix) for name, cat in true_cats.items()}
+    stats = do_all_stats(det_cat, true_cats, match_dist=match_dist, spec_precision=spec_precision)
+    return stats

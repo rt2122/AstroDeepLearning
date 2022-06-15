@@ -1,5 +1,6 @@
 """Module for detecting objects in Planck masks."""
 import argparse
+from argparse import RawTextHelpFormatter
 import time
 import datetime
 from .scripts import scan_Planck_Unet, extract_cat_Planck
@@ -10,7 +11,8 @@ def make_parser() -> argparse.ArgumentParser:
 
     :rtype: argparse.ArgumentParser
     """
-    parser = argparse.ArgumentParser(description="Script for detector on Planck data.")
+    parser = argparse.ArgumentParser(description="Script for detector on Planck data.",
+                                     formatter_class=RawTextHelpFormatter)
     parser.add_argument("command", metavar="<command>",
                         help="'scan' for scanning Planck data with selected model.\n"
                         "'cat' for creating catalog from scan."
