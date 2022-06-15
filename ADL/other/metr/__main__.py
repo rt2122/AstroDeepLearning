@@ -29,7 +29,9 @@ def make_parser() -> argparse.ArgumentParser:
                         help="Name of parameter for ranging depending on detected catalog.\n"
                         "'max_pred', 's/n' or something else.")
     parser.add_argument("--range_preset", metavar="<range_preset>", default="linear",
-                        help="Values for range prm. 'linear' or 'brcat'")
+                        help="Values for range prm. 'linear' or 'brcat' or 'quantile'")
+    parser.add_argument("--pixels", metavar="<pixels>", default="all",
+                        help="HEALPix pixels with nside=2.")
     return parser
 
 
@@ -39,7 +41,7 @@ if __name__ == "__main__":
     start_time = time.time()
 
     calc_prec_recall_by_range_parameter(args.det_path, args.true_dir_path, args.out_path,
-                                        args.rules, args.range_prm, args.range_preset)
+                                        args.rules, args.range_prm, args.range_preset, args.pixels)
 
     finish_time = time.time()
     diff = str(datetime.timedelta(seconds=finish_time - start_time))

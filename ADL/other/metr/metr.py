@@ -162,6 +162,8 @@ def stats_with_rules(det_cat: pd.DataFrame, true_cats: List[pd.DataFrame], rules
     :type spec_precision: List[str]
     """
     det_cat = cut_cat(det_cat, rules, big_pix)
+    if len(det_cat) == 0:
+        return None
     true_cats = {name: cut_cat(cat, rules, big_pix) for name, cat in true_cats.items()}
     stats = do_all_stats(det_cat, true_cats, match_dist=match_dist, spec_precision=spec_precision)
     stats["n_det"] = len(det_cat)
