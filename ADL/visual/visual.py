@@ -24,8 +24,8 @@ def get_ax(rows: int = 1, cols: int = 1, scale: int = 12, shape: Tuple[int] = No
         shape = (scale * cols, scale * rows)
     else:
         shape = (shape[0] * scale, shape[1] * scale)
-    _, ax = plt.subplots(rows, cols, figsize=shape)
-    return ax
+    f, ax = plt.subplots(rows, cols, figsize=shape)
+    return f, ax
 
 
 def show_history(ax: matplotlib.axes.Axes, path: str, metrics: List = None,

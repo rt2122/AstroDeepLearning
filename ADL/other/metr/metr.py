@@ -144,7 +144,7 @@ def cats2dict(dir_path: str) -> Dict[str, pd.DataFrame]:
 
 
 def stats_with_rules(det_cat: pd.DataFrame, true_cats: List[pd.DataFrame], rules: Dict = {},
-                     big_pix: List[int] = None, match_dist: float = 5/60,
+                     big_pix: List[int] = None, match_dist: float = 400/(60)**2,
                      spec_precision: List[str] = []):
     """Calculate metrics for detected catalog with selected rules.
 
@@ -164,4 +164,5 @@ def stats_with_rules(det_cat: pd.DataFrame, true_cats: List[pd.DataFrame], rules
     det_cat = cut_cat(det_cat, rules, big_pix)
     true_cats = {name: cut_cat(cat, rules, big_pix) for name, cat in true_cats.items()}
     stats = do_all_stats(det_cat, true_cats, match_dist=match_dist, spec_precision=spec_precision)
+    stats["n_det"] = len(det_cat)
     return stats
