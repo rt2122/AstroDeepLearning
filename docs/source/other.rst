@@ -1,3 +1,4 @@
+=====
 other
 =====
 .. argparse::
@@ -6,4 +7,9 @@ other
    :prog: ADL.other
 
 .. automodule:: ADL.other
+    :members:
+
+other.metr
+==========
+.. automodule:: ADL.other.metr
     :members:
