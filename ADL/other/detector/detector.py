@@ -153,8 +153,9 @@ def divide_figures(pic: np.ndarray) -> List[np.ndarray]:
     ans = []
     while coords.shape[1] != 0:
         seed_point = tuple(coords[:, 0])
-        ans.append(flood(pic, seed_point))
-        pic = flood_fill(pic, seed_point, 0)
+        figure = flood(pic, seed_point)
+        ans.append(figure)
+        pic[np.where(figure)] = 0
         coords = np.array(np.where(pic != 0))
     return ans
 
