@@ -1,5 +1,6 @@
 """Module with functions for visualization."""
 import pandas as pd
+import numpy as np
 import matplotlib
 from matplotlib import pyplot as plt
 from typing import Tuple, List
@@ -38,7 +39,7 @@ def show_history(ax: matplotlib.axes.Axes, path: str, metrics: List = None,
     :type path: str
     :param metrics: Metrics to show.
     :type metrics: List
-    :param epochs: Epochs to show.
+    :param epochs: Epochs to show in format [min_epoch, max_epoch).
     :type epochs: list
     :param find_min: Name of metric for which minimum would be found.
     :type find_min: str
@@ -53,7 +54,7 @@ def show_history(ax: matplotlib.axes.Axes, path: str, metrics: List = None,
     df = pd.read_csv(path)
 
     if epochs is not None:
-        df = df[epochs]
+        df = df[np.in1d(df["epoch"], range(*epochs))]
     epochs = df['epoch']
 
     if metrics is None:
