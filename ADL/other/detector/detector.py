@@ -60,6 +60,8 @@ def scan_sky_Planck(data_path: str, out_path: str, model_path: str, step: int = 
     :type patch_size: int
     :param nside: Nside for big tiles.
     :type nside: int
+    :param verbose: Flag for tqdm. 
+    :type verbose: bool 
     :rtype: None
     """
     model = Unet_model(weights=model_path)
@@ -102,6 +104,8 @@ def fast_skan_sky_Planck(data_path: str, out_path: str, model_path: str, nside: 
     :type model: Model
     :param nside:
     :type nside: int
+    :param verbose: Flag for tqdm. 
+    :type verbose: bool 
     :rtype: None
     """
     model = Unet_model(weights=model_path)
@@ -226,17 +230,22 @@ def pix_extract_catalog(pred_path: str, ipix: str, thr: float = 0.1) -> pd.DataF
     return df
 
 
-def sky_extract_catalog(pred_path: str, thr: float = 0.1) -> pd.DataFrame:
+def sky_extract_catalog(pred_path: str, thr: float = 0.1, verbose: bool = True) -> pd.DataFrame:
     """Extract catalog with sky coordinates for all pixels.
 
     :param pred_path: Path to directory with predicted masks.
     :type pred_path: str
     :param thr: Threshold for masks.
     :type thr: float
+    :param verbose: Flag for tqdm. 
+    :type verbose: bool 
     :rtype: pd.DataFrame
     """
     df = []
-    for ipix in tqdm(range(hp.nside2npix(2))):
+    iter_pixels = range(hp.nside2npix(2))
+    if verbose:
+        iter_pixels = tqdm(iter_pixels)
+    for ipix in iter_pixels:
         df.append(pix_extract_catalog(pred_path, ipix, thr))
     df = pd.concat(df, ignore_index=True)
     return df
