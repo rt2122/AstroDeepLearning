@@ -31,13 +31,18 @@ def scan_Planck_Unet(model_path: str, data_path: str, out_path: str, step: str, 
         scan_sky_Planck(data_path, out_path, model_path, int(step), verbose=verbose)
 
 
-def extract_cat_Planck(in_path, out_path, thr) -> None:
+def extract_cat_Planck(in_path: str, out_path: str, thr: str, verbose: bool = True) -> None:
     """Extract catalog.
 
     :param in_path: Input path to scans.
+    :type in_path: str
     :param out_path: Output path to catalog.
+    :type out_path: str
     :param thr: Threshold for masks.
+    :type thr: str
+    :param verbose: Flag for tqdm. 
+    :type verbose: bool 
     :rtype: None
     """
-    df = sky_extract_catalog(in_path, float(thr))
+    df = sky_extract_catalog(in_path, float(thr), verbose=verbose)
     df.to_csv(out_path, index=False)
