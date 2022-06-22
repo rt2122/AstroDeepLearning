@@ -3,8 +3,8 @@ from . import scan_sky_Planck, fast_skan_sky_Planck, sky_extract_catalog
 import os
 
 
-def scan_Planck_Unet(model_path: str, data_path: str, out_path: str, step: str, device: str
-                     ) -> None:
+def scan_Planck_Unet(model_path: str, data_path: str, out_path: str, step: str, device: str,
+                     verbose: bool =True) -> None:
     """Full scan for Planck.
 
     :param model_path: Path to model.
@@ -17,16 +17,18 @@ def scan_Planck_Unet(model_path: str, data_path: str, out_path: str, step: str, 
     :type step: str
     :param device: Device (cpu or gpu).
     :type device: str
+    :param verbose: Flag for tqdm. 
+    :type verbose: bool 
     :rtype: None
     """
     if device == "cpu":
         os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
     if step == "fast":
         print("Fast scan.")
-        fast_skan_sky_Planck(data_path, out_path, model_path)
+        fast_skan_sky_Planck(data_path, out_path, model_path, verbose=verbose)
     else:
         print(f"Slow scan with step {step}")
-        scan_sky_Planck(data_path, out_path, model_path, int(step))
+        scan_sky_Planck(data_path, out_path, model_path, int(step), verbose=verbose)
 
 
 def extract_cat_Planck(in_path, out_path, thr) -> None:

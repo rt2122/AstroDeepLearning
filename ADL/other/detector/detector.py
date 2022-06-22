@@ -43,7 +43,7 @@ def connect_masks(masks: List[np.ndarray], pic_idx: List[Tuple[int]], patch_size
 
 
 def scan_sky_Planck(data_path: str, out_path: str, model_path: str, step: int = 64,
-                    patch_size: int = 64, nside: int = 2) -> None:
+                    patch_size: int = 64, nside: int = 2, verbose: bool = True) -> None:
     """Scan of all 48 HEALPix pixels with chosen model.
 
     Each tile is divided into patches, and then small scans connected together.
@@ -63,7 +63,10 @@ def scan_sky_Planck(data_path: str, out_path: str, model_path: str, step: int = 
     :rtype: None
     """
     model = Unet_model(weights=model_path)
-    for ipix in tqdm(range(hp.nside2npix(nside))):
+    iter_pixels = range(hp.nside2npix(nside))
+    if verbose:
+        iter_pixels = tqdm(iter_pixels)
+    for ipix in iter_pixels:
         big_pic = np.load(os.path.join(data_path, f'{ipix}.npy'))
         pics = []
         pic_idx = []
@@ -85,7 +88,8 @@ def scan_sky_Planck(data_path: str, out_path: str, model_path: str, step: int = 
         np.save(os.path.join(out_path, f'{ipix}.npy'), pred)
 
 
-def fast_skan_sky_Planck(data_path: str, out_path: str, model_path: str, nside: int = 2) -> None:
+def fast_skan_sky_Planck(data_path: str, out_path: str, model_path: str, nside: int = 2,
+                         verbose: bool = True) -> None:
     """Fast scan of all 48 HEALPix pixels with chosen model.
 
     Each tile scanned at once.
@@ -105,7 +109,10 @@ def fast_skan_sky_Planck(data_path: str, out_path: str, model_path: str, nside: 
     fast_model.set_weights(model.get_weights())
     X = [np.load(os.path.join(data_path, f'{ipix}.npy')) for ipix in range(hp.nside2npix(2))]
     pred = fast_model.predict(np.array(X))
-    for ipix in range(hp.nside2npix(2)):
+    iter_pixels = range(hp.nside2npix(nside))
+    if verbose:
+        iter_pixels = tqdm(iter_pixels)
+    for ipix in iter_pixels:
         np.save(os.path.join(out_path, f"{ipix}.npy"), pred[ipix])
 
 
