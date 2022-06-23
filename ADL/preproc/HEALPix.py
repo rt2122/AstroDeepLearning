@@ -158,7 +158,7 @@ def draw_dots(ras: np.ndarray, decs: np.ndarray, nside: int, pix_matr: np.ndarra
 
 def generate_patch_coords(cats: List[str], step: int = 20, o_nside: int = 2, nside: int = 2**11,
                           radius: float = 1.83, patch_size: int = 64,
-                          n_patches: int = None) -> pd.DataFrame:
+                          n_patches: int = None, only_act: bool = True) -> pd.DataFrame:
     """Create list of dots from which patches can be generated.
 
     Each patch will contain at least one object from chosen catalogs.
@@ -181,7 +181,10 @@ def generate_patch_coords(cats: List[str], step: int = 20, o_nside: int = 2, nsi
     """
     if n_patches is not None:
         step = 1
+
     df = pd.concat([pd.read_csv(cat) for cat in cats])
+    if only_act:
+        df = df[df["found_ACT"]]
     all_idx = {"x": [], "y": [], "pix2": []}
     for i in tqdm(range(hp.nside2npix(2))):
         pix_matr = one_pixel_fragmentation(o_nside, i, nside)
