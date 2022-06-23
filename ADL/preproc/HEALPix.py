@@ -7,7 +7,7 @@ from astropy import units as u
 import healpy as hp
 from typing import Union, List, Tuple
 from tqdm import tqdm
-from ADL.other.metr import cats2dict
+import ADL.other.metr
 
 
 def recursive_fill(matr: np.ndarray) -> None:
@@ -182,7 +182,7 @@ def generate_patch_coords(cats_path: str, step: int = 20, o_nside: int = 2, nsid
     """
     if n_patches is not None:
         step = 1
-    cats = cats2dict(cats_path)
+    cats = ADL.metr.cats2dict(cats_path)
     if len(filter(lambda x: "act" in x.lowercase(), cats)) > 0:
         # There is ACT catalog. We should generate patches only for ACT
         for cat in cats:
@@ -235,7 +235,7 @@ def draw_masks_and_save(cats_path: str, outpath: str, o_nside: int = 2, nside: i
     :type radius: float
     :rtype: None
     """
-    cats = cats2dict(cats_path)
+    cats = ADL.metr.cats2dict(cats_path)
     df = pd.concat(cats.values())
     for i in tqdm(range(hp.nside2npix(o_nside))):
         pix_matr = one_pixel_fragmentation(o_nside, i, nside)

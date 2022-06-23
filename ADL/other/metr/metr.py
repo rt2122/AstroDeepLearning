@@ -6,7 +6,7 @@ import pandas as pd
 import os
 from typing import List, Dict, Union
 from collections.abc import Callable
-from ADL.preproc import radec2pix
+import ADL.preproc
 
 
 def match_det_to_true(det_cat: pd.DataFrame, det_cat_sc: SkyCoord, true_cat: pd.DataFrame,
@@ -105,7 +105,7 @@ def cut_cat_by_pix(df: pd.DataFrame, big_pix: List[int]) -> pd.DataFrame:
     :type big_pix: List[int]
     :rtype: pd.DataFrame
     """
-    pix = radec2pix(df['RA'], df['DEC'], 2)
+    pix = ADL.preproc.radec2pix(df['RA'], df['DEC'], 2)
     df = df[np.in1d(pix, big_pix)]
     df.index = np.arange(len(df))
     return df
