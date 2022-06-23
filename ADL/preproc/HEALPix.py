@@ -183,13 +183,16 @@ def generate_patch_coords(cats_path: str, step: int = 20, o_nside: int = 2, nsid
     if n_patches is not None:
         step = 1
     cats = ADL.other.metr.cats2dict(cats_path)
-    if len(filter(lambda x: "act" in x.lowercase(), cats)) > 0:
+    acts = list(filter(lambda x: "act" in x.lower(), cats))
+    if len(acts) > 0:
         # There is ACT catalog. We should generate patches only for ACT
+        new_dict = {}
         for cat in cats:
-            if "act" not in cat.lowercase():
-                cats.pop(cat)
-            elif not cat.startswith("AL"):
-                cats[cat]["found_ACT"] = True
+            if "act" in cat.lower():
+                new_dict[cat] = cats[cat]
+                if not cat.startswith("AL"):
+                    new_dict[cat]["found_ACT"] = True
+        cats = new_dict
 
     df = pd.concat(cats.values())
     if "found_ACT" in df:
