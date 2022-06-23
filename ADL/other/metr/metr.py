@@ -39,7 +39,14 @@ def match_det_to_true(det_cat: pd.DataFrame, det_cat_sc: SkyCoord, true_cat: pd.
     n_matched = np.count_nonzero(matched)
     stats[true_name] = n_matched / len(true_cat)
     if spec_flag:
+        if "tRA" not in list(det_cat):
+            det_cat["tRA"] = 0
+            det_cat["tDEC"] = 0
+        det_cat["found_" + true_name] = False
         det_cat.loc[idx[matched], 'found_' + true_name] = True
+        det_cat.loc[idx[matched], 'tRA'] = np.array(true_cat["RA"].iloc[matched])
+        det_cat.loc[idx[matched], 'tDEC'] = np.array(true_cat["DEC"].iloc[matched])
+
         n_true_matched = np.count_nonzero(det_cat['found_' + true_name])
         stats['precision_' + true_name] = n_true_matched / len(det_cat)
         stats['found_' + true_name] = n_true_matched
@@ -168,3 +175,30 @@ def stats_with_rules(det_cat: pd.DataFrame, true_cats: List[pd.DataFrame], rules
     stats = do_all_stats(det_cat, true_cats, match_dist=match_dist, spec_precision=spec_precision)
     stats["n_det"] = len(det_cat)
     return stats
+
+
+def active_learning_cat(det_cat_path: str, true_dir: str, true_names: List[str], match_dist: float
+                        ) -> pd.DataFrame:
+    """Create catalog for active learning.
+
+    :param det_cat_path:
+    :type det_cat_path: str
+    :param true_dir:
+    :type true_dir: str
+    :param true_names:
+    :type true_names: List[str]
+    :param match_dist:
+    :type match_dist: float
+    :rtype: pd.DataFrame
+    """
+    det_cat = pd.read_csv(det_cat_path)
+    det_cat["found"] = False
+    true_cats = cats2dict(true_dir)
+    det_sc = SkyCoord(ra=det_cat["RA"] * u.degree, dec=det_cat["DEC"] * u.degree, frame="icrs")
+    for true_name in true_names:
+        match_det_to_true(det_cat, det_sc, true_cats[true_name], true_name, match_dist,
+                          spec_flag=True)
+    det_cat = det_cat[det_cat["found"]]
+    det_cat.drop(columns=["RA", "DEC"], inplace=True)
+    det_cat.rename({"tRA": "RA", "tDEC": "DEC"}, axis="columns", inplace=True)
+    return det_cat
