@@ -51,12 +51,10 @@ def generate_masks_and_patches_Planck(inpath: str, outpath: str, n_patches: str)
     :type n_patches: str
     :rtype: None
     """
-    files = os.listdir(inpath)
-    cats = [os.path.join(inpath, file) for file in files if file.endswith(".csv")]
     print("Creating masks.")
-    draw_masks_and_save(cats, outpath)
+    draw_masks_and_save(inpath, outpath)
     print("Generating coordinates for patches.")
-    patches = generate_patch_coords(cats, n_patches=int(n_patches))
+    patches = generate_patch_coords(inpath, n_patches=int(n_patches))
     patches.to_csv(os.path.join(outpath, "pc.csv"), index=False)
     print(f"Number of patches generated: {len(patches)}.")
     # TODO automatically generate description (number of patches for each pixel + catalogs)

@@ -7,6 +7,7 @@ from astropy import units as u
 import healpy as hp
 from typing import Union, List, Tuple
 from tqdm import tqdm
+from ADL.other.metr import cats2dict
 
 
 def recursive_fill(matr: np.ndarray) -> None:
@@ -156,15 +157,15 @@ def draw_dots(ras: np.ndarray, decs: np.ndarray, nside: int, pix_matr: np.ndarra
     return pic
 
 
-def generate_patch_coords(cats: List[str], step: int = 20, o_nside: int = 2, nside: int = 2**11,
+def generate_patch_coords(cats_path: str, step: int = 20, o_nside: int = 2, nside: int = 2**11,
                           radius: float = 1.83, patch_size: int = 64,
                           n_patches: int = None, only_act: bool = True) -> pd.DataFrame:
     """Create list of dots from which patches can be generated.
 
     Each patch will contain at least one object from chosen catalogs.
 
-    :param cats: List of pathes for catalogs.
-    :type cats: List[str]
+    :param cats_path: Directory with catalogs.
+    :type cats_path: str
     :param step: Step for coordinates (to lessen the size of output table).
     :type step: int
     :param o_nside: Original nside.
@@ -181,10 +182,19 @@ def generate_patch_coords(cats: List[str], step: int = 20, o_nside: int = 2, nsi
     """
     if n_patches is not None:
         step = 1
+    cats = cats2dict(cats_path)
+    if len(filter(lambda x: "act" in x.lowercase(), cats)) > 0:
+        # There is ACT catalog. We should generate patches only for ACT
+        for cat in cats:
+            if "act" not in cat.lowercase():
+                cats.pop(cat)
+            elif not cat.startswith("AL"):
+                cats[cat]["found_ACT"] = True
 
-    df = pd.concat([pd.read_csv(cat) for cat in cats])
-    if only_act:
+    df = pd.concat(cats.values())
+    if "found_ACT" in df:
         df = df[df["found_ACT"]]
+        print(f"ACT clusters {len(df)}")
     all_idx = {"x": [], "y": [], "pix2": []}
     for i in tqdm(range(hp.nside2npix(2))):
         pix_matr = one_pixel_fragmentation(o_nside, i, nside)
@@ -209,12 +219,12 @@ def generate_patch_coords(cats: List[str], step: int = 20, o_nside: int = 2, nsi
     return all_idx
 
 
-def draw_masks_and_save(cats: List[str], outpath: str, o_nside: int = 2, nside: int = 2**11,
+def draw_masks_and_save(cats_path: str, outpath: str, o_nside: int = 2, nside: int = 2**11,
                         radius: float = 5/60) -> None:
     """Draw masks for training.
 
-    :param cats: List of pathes for catalogs.
-    :type cats: List[str]
+    :param cats_path: Directory with catalogs.
+    :type cats_path: str
     :param outpath: Path to save masks.
     :type outpath: str
     :param o_nside: Original nside.
@@ -225,7 +235,8 @@ def draw_masks_and_save(cats: List[str], outpath: str, o_nside: int = 2, nside: 
     :type radius: float
     :rtype: None
     """
-    df = pd.concat([pd.read_csv(cat) for cat in cats])
+    cats = cats2dict(cats_path)
+    df = pd.concat(cats.values())
     for i in tqdm(range(hp.nside2npix(o_nside))):
         pix_matr = one_pixel_fragmentation(o_nside, i, nside)
         pic = draw_circles(df["RA"], df["DEC"], radiuses=radius, nside=nside, pix_matr=pix_matr)
