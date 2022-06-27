@@ -159,7 +159,7 @@ def draw_dots(ras: np.ndarray, decs: np.ndarray, nside: int, pix_matr: np.ndarra
 
 def generate_patch_coords(cats_path: str, step: int = 20, o_nside: int = 2, nside: int = 2**11,
                           radius: float = 1.83, patch_size: int = 64,
-                          n_patches: int = None, only_act: bool = True) -> pd.DataFrame:
+                          n_patches: int = None, cats_subset: List[str] = None) -> pd.DataFrame:
     """Create list of dots from which patches can be generated.
 
     Each patch will contain at least one object from chosen catalogs.
@@ -178,18 +178,15 @@ def generate_patch_coords(cats_path: str, step: int = 20, o_nside: int = 2, nsid
     :type patch_size: int
     :param n_patches: Approximate amount of patches to generate. Overrides step parameter.
     :type n_patches: int
+    :param cats_subset: Subset for cats.
+    :type cats_subset: List[str]
     :rtype: pd.DataFrame
     """
     if n_patches is not None:
         step = 1
     cats = ADL.other.metr.cats2dict(cats_path)
-    if len(filter(lambda x: "act" in x.lowercase(), cats)) > 0:
-        # There is ACT catalog. We should generate patches only for ACT
-        for cat in cats:
-            if "act" not in cat.lowercase():
-                cats.pop(cat)
-            elif not cat.startswith("AL"):
-                cats[cat]["found_ACT"] = True
+    if cats_subset is not None:
+        cats = {key: val for key, val in cats.items() if key in cats_subset}
 
     df = pd.concat(cats.values())
     if "found_ACT" in df:

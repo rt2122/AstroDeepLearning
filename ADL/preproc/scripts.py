@@ -5,6 +5,7 @@ import numpy as np
 from tqdm import tqdm
 from . import (match_channels, fits2df, normalize_asym, one_pixel_fragmentation,
                draw_masks_and_save, generate_patch_coords)
+from typing import List
 
 
 def preproc_HFI_Planck(inpath: str, outpath: str) -> None:
@@ -40,7 +41,8 @@ def preproc_HFI_Planck(inpath: str, outpath: str) -> None:
     return
 
 
-def generate_masks_and_patches_Planck(inpath: str, outpath: str, n_patches: str) -> None:
+def generate_masks_and_patches_Planck(inpath: str, outpath: str, n_patches: str,
+                                      cats_subset: List[str]) -> None:
     """Generate target data.
 
     :param inpath: Directory with catalogs. Each catalog should have columns: [RA, DEC].
@@ -49,12 +51,14 @@ def generate_masks_and_patches_Planck(inpath: str, outpath: str, n_patches: str)
     :type outpath: str
     :param n_patches: Approximate amount of patches.
     :type n_patches: str
+    :param cats_subset: List of catalogs to use to form patches.
+    :type cats_subset: List[str]
     :rtype: None
     """
     print("Creating masks.")
     draw_masks_and_save(inpath, outpath)
     print("Generating coordinates for patches.")
-    patches = generate_patch_coords(inpath, n_patches=int(n_patches))
+    patches = generate_patch_coords(inpath, n_patches=int(n_patches), cats_subset=cats_subset)
     patches.to_csv(os.path.join(outpath, "pc.csv"), index=False)
     print(f"Number of patches generated: {len(patches)}.")
     # TODO automatically generate description (number of patches for each pixel + catalogs)
