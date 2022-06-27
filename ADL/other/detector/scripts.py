@@ -23,6 +23,8 @@ def scan_Planck_Unet(model_path: str, data_path: str, out_path: str, step: str, 
     """
     if device == "cpu":
         os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+    if not os.path.isdir(out_path):
+        os.mkdir(out_path)
     if step == "fast":
         print("Fast scan.")
         fast_skan_sky_Planck(data_path, out_path, model_path, verbose=verbose)
