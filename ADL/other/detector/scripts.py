@@ -4,7 +4,7 @@ import os
 
 
 def scan_Planck_Unet(model_path: str, data_path: str, out_path: str, step: str, device: str,
-                     verbose: bool =True) -> None:
+                     verbose: bool = True) -> None:
     """Full scan for Planck.
 
     :param model_path: Path to model.
@@ -17,8 +17,8 @@ def scan_Planck_Unet(model_path: str, data_path: str, out_path: str, step: str, 
     :type step: str
     :param device: Device (cpu or gpu).
     :type device: str
-    :param verbose: Flag for tqdm. 
-    :type verbose: bool 
+    :param verbose: Flag for tqdm.
+    :type verbose: bool
     :rtype: None
     """
     if device == "cpu":
@@ -42,8 +42,8 @@ def extract_cat_Planck(in_path: str, out_path: str, thr: str, verbose: bool = Tr
     :type out_path: str
     :param thr: Threshold for masks.
     :type thr: str
-    :param verbose: Flag for tqdm. 
-    :type verbose: bool 
+    :param verbose: Flag for tqdm.
+    :type verbose: bool
     :rtype: None
     """
     df = sky_extract_catalog(in_path, float(thr), verbose=verbose)

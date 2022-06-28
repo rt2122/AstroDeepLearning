@@ -7,7 +7,7 @@ from typing import List, Tuple, Dict
 from tqdm import tqdm
 from ADL.model import Unet_model
 from ADL.preproc import one_pixel_fragmentation, pix2radec
-from skimage.segmentation import flood, flood_fill
+from skimage.segmentation import flood
 from skimage.filters import roberts
 from skimage.measure import moments
 
@@ -60,8 +60,8 @@ def scan_sky_Planck(data_path: str, out_path: str, model_path: str, step: int = 
     :type patch_size: int
     :param nside: Nside for big tiles.
     :type nside: int
-    :param verbose: Flag for tqdm. 
-    :type verbose: bool 
+    :param verbose: Flag for tqdm.
+    :type verbose: bool
     :rtype: None
     """
     model = Unet_model(weights=model_path)
@@ -104,8 +104,8 @@ def fast_skan_sky_Planck(data_path: str, out_path: str, model_path: str, nside: 
     :type model: Model
     :param nside:
     :type nside: int
-    :param verbose: Flag for tqdm. 
-    :type verbose: bool 
+    :param verbose: Flag for tqdm.
+    :type verbose: bool
     :rtype: None
     """
     model = Unet_model(weights=model_path)
@@ -237,8 +237,8 @@ def sky_extract_catalog(pred_path: str, thr: float = 0.1, verbose: bool = True) 
     :type pred_path: str
     :param thr: Threshold for masks.
     :type thr: float
-    :param verbose: Flag for tqdm. 
-    :type verbose: bool 
+    :param verbose: Flag for tqdm.
+    :type verbose: bool
     :rtype: pd.DataFrame
     """
     df = []
