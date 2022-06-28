@@ -50,5 +50,5 @@ def train_Planck_Unet(model_name: str, data_path: str, target_path: str, model_p
                                  pix2=pix_dict["val"], batch_size=int(batch_size))
     dataset_val.prepare()
 
-    model = ADL_Unet(os.path.join(model_path, model_name + "-ep{epoch:03}.hdf5"), weights=weights)
+    model = ADL_Unet(os.path.join(model_path, model_name + "_ep{epoch:03}.hdf5"), weights=weights)
     model.train(dataset_train, dataset_val, int(epochs))
