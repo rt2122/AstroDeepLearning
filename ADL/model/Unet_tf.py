@@ -89,8 +89,13 @@ class ADL_Unet:
         self.model_path = model_path
         self.history = []
 
+    def get_old_history(self):
+        history = pd.read_csv(os.path.join(os.path.dirname(self.model_path), "history.csv"))
+        history.drop(columns=["epoch"], inplace=True)
+        self.history = history.to_dict("records")
+
     def train(self, trainset: Planck_Dataset, valset: Planck_Dataset, n_epochs: int,
-              init_epoch: int = 0) -> None:
+              init_epoch: int = 0, continue_train: bool = False) -> None:
         """Train model.
 
         :param trainset: Dataset for training.
@@ -101,8 +106,14 @@ class ADL_Unet:
         :type n_epochs: int
         :param init_epoch: Index of initial epoch.
         :type init_epoch: int
+        :param continue_train: Flag for continuing training.
+        :type continuing: bool
         :rtype: None
         """
+        if continue_train:
+            self.get_old_history()
+            init_epoch = len(self.history)
+
         for i in range(init_epoch, init_epoch + n_epochs):
             print(f"Epoch #{i}")
             history = self.model.fit(trainset.generator(), epochs=i+1, verbose=1,
