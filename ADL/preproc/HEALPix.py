@@ -5,7 +5,7 @@ import os
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 import healpy as hp
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Dict
 from tqdm import tqdm
 import ADL.other.metr
 
@@ -157,6 +157,38 @@ def draw_dots(ras: np.ndarray, decs: np.ndarray, nside: int, pix_matr: np.ndarra
     return pic
 
 
+def src_on_batch(patch_line: Dict, f_matr: np.ndarray, cats: Dict[str, pd.DataFrame]
+                 ) -> Dict[str, pd.DataFrame]:
+    """Return cats with objects that are visible in selected patch.
+
+    Also generate x, y coords (within patch) for each object.
+
+    :param patch_line:
+    :type patch_line: Dict
+    :param f_matr:
+    :type f_matr: np.ndarray
+    :param cats:
+    :type cats: Dict[str, pd.DataFrame]
+    :rtype: Dict[str, pd.DataFrame]
+    """
+    output = {}
+    x, y = patch_line["x"], patch_line["y"]
+    f_matr = f_matr[x:x+64, y:y+64].copy()
+    for name, cat in cats.items():
+        cur_cat = cat[cat["pix2"] == patch_line["pix2"]]
+        cur_cat = cur_cat[np.in1d(cur_cat["pix11"], f_matr.flatten())]
+        cur_cat.index = np.arange(len(cur_cat))
+        cur_cat["x"] = 0
+        cur_cat["y"] = 0
+        for i in range(len(cur_cat)):
+            pix = cur_cat.loc[i, "pix11"]
+            coords = np.where(f_matr == pix)
+            cur_cat.loc[i, "x"] = coords[0][0]
+            cur_cat.loc[i, "y"] = coords[1][0]
+        output[name] = cur_cat
+    return output
+
+
 def generate_patch_coords(cats_path: str, step: int = 20, o_nside: int = 2, nside: int = 2**11,
                           radius: float = 1.83, patch_size: int = 64,
                           n_patches: int = None, cats_subset: List[str] = None) -> pd.DataFrame:
@@ -189,23 +221,24 @@ def generate_patch_coords(cats_path: str, step: int = 20, o_nside: int = 2, nsid
         cats = {key: val for key, val in cats.items() if key in cats_subset}
 
     df = pd.concat(cats.values())
-    if "found_ACT" in df:
-        df = df[df["found_ACT"]]
-        print(f"ACT clusters {len(df)}")
-    all_idx = {"x": [], "y": [], "pix2": []}
+    all_idx = {"x": [], "y": [], "pix2": [], "n_src": []}
     for i in tqdm(range(hp.nside2npix(2))):
         pix_matr = one_pixel_fragmentation(o_nside, i, nside)
         pic = draw_dots(df["RA"], df["DEC"], nside=nside, pix_matr=pix_matr)
         xs, ys = [], []
+        n_src = []
         for x in range(0, 1024 - 64, step):
             for y in range(0, 1024 - 64, step):
-                if pic[x:x+patch_size, y:y+patch_size].any():
+                patch_pic = pic[x:x+patch_size, y:y+patch_size]
+                if patch_pic.any():
+                    n_src.append(np.count_nonzero(patch_pic))
                     xs.append(x)
                     ys.append(y)
 
         all_idx["x"].extend(xs)
         all_idx["y"].extend(ys)
         all_idx["pix2"].extend([i] * len(xs))
+        all_idx["n_src"].extend(n_src)
 
     all_idx = pd.DataFrame(all_idx, index=np.arange(len(all_idx["x"])))
 
