@@ -163,11 +163,11 @@ def src_on_batch(patch_line: Dict, f_matr: np.ndarray, cats: Dict[str, pd.DataFr
 
     Also generate x, y coords (within patch) for each object.
 
-    :param patch_line:
+    :param patch_line: Line of patch in table.
     :type patch_line: Dict
-    :param f_matr:
+    :param f_matr: HEALPix correspondence matrix.
     :type f_matr: np.ndarray
-    :param cats:
+    :param cats: Catalogs.
     :type cats: Dict[str, pd.DataFrame]
     :rtype: Dict[str, pd.DataFrame]
     """
@@ -272,3 +272,40 @@ def draw_masks_and_save(cats_path: str, outpath: str, o_nside: int = 2, nside: i
         pic = draw_circles(df["RA"], df["DEC"], radiuses=radius, nside=nside, pix_matr=pix_matr)
         pic = pic.reshape(pic.shape + (1,))
         np.save(os.path.join(outpath, f"{i}.npy"), pic)
+
+
+def update_old_dataset(path: str, cats_subset: List[str], patch_size: int = 64, o_nside: int = 2,
+                       nside: int = 2**11) -> None:
+    """Add n_src to old dataset.
+
+    :param path: Path to dataset.
+    :type path: str
+    :param cats_subset: Subset of catalogs.
+    :type cats_subset: List[str]
+    :param patch_size: Size of patch.
+    :type patch_size: int
+    :param o_nside: Original nside.
+    :type o_nside: int
+    :param nside: Final nside.
+    :type nside: int
+    :rtype: None
+    """
+    cats = ADL.other.metr.cats2dict(os.path.join(path, "cats"))
+    if cats_subset is not None:
+        cats = {key: val for key, val in cats.items() if key in cats_subset}
+
+    df = pd.concat(cats.values())
+    patch_coords = pd.read_csv(os.path.join(path, "pc.csv"))
+    patch_coords["n_src"] = None
+    for i in tqdm(range(hp.nside2npix(2))):
+        cur_patch_coords = patch_coords[patch_coords["pix2"] == i]
+        pix_matr = one_pixel_fragmentation(o_nside, i, nside)
+        pic = draw_dots(df["RA"], df["DEC"], nside=nside, pix_matr=pix_matr)
+        n_src = []
+        for x, y in zip(cur_patch_coords["x"], cur_patch_coords["y"]):
+            patch_pic = pic[x:x+patch_size, y:y+patch_size]
+            if patch_pic.any():
+                n_src.append(np.count_nonzero(patch_pic))
+        patch_coords.loc[patch_coords["pix2"] == i, "n_src"] = n_src
+
+    patch_coords.to_csv(os.path.join(path, "pc.csv"), index=False)
