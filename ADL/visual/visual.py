@@ -74,12 +74,12 @@ def show_history(ax: matplotlib.axes.Axes, path: str, metrics: List = None,
 
     if find_min is not None:
         m = df[find_min].argmin()
-        v = ax.axvline(m, c='r')
+        v = ax.axvline(df.loc[m, "epoch"], c='r')
         ep = df["epoch"][m]
         v.set_label(f"Minimum of {find_min} at {ep}")
     if find_max is not None:
         m = df[find_max].argmax()
-        v = ax.axvline(m, c='r')
+        v = ax.axvline(df.loc[m, "epoch"], c='r')
         ep = df["epoch"][m]
         v.set_label(f"Maximum of {find_max} at {ep}")
 
