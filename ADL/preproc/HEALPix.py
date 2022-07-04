@@ -189,66 +189,6 @@ def src_on_batch(patch_line: Dict, f_matr: np.ndarray, cats: Dict[str, pd.DataFr
     return output
 
 
-def generate_patch_coords(cats_path: str, step: int = 20, o_nside: int = 2, nside: int = 2**11,
-                          radius: float = 1.83, patch_size: int = 64,
-                          n_patches: int = None, cats_subset: List[str] = None) -> pd.DataFrame:
-    """Create list of dots from which patches can be generated.
-
-    Each patch will contain at least one object from chosen catalogs.
-
-    :param cats_path: Directory with catalogs.
-    :type cats_path: str
-    :param step: Step for coordinates (to lessen the size of output table).
-    :type step: int
-    :param o_nside: Original nside.
-    :type o_nside: int
-    :param nside: Final nside.
-    :type nside: int
-    :param radius: Radius of area for patches.
-    :type radius: float
-    :param patch_size: Size of a patch.
-    :type patch_size: int
-    :param n_patches: Approximate amount of patches to generate. Overrides step parameter.
-    :type n_patches: int
-    :param cats_subset: Subset for cats.
-    :type cats_subset: List[str]
-    :rtype: pd.DataFrame
-    """
-    if n_patches is not None:
-        step = 1
-    cats = ADL.other.metr.cats2dict(cats_path)
-    if cats_subset is not None:
-        cats = {key: val for key, val in cats.items() if key in cats_subset}
-
-    df = pd.concat(cats.values())
-    all_idx = {"x": [], "y": [], "pix2": [], "n_src": []}
-    for i in tqdm(range(hp.nside2npix(2))):
-        pix_matr = one_pixel_fragmentation(o_nside, i, nside)
-        pic = draw_dots(df["RA"], df["DEC"], nside=nside, pix_matr=pix_matr)
-        xs, ys = [], []
-        n_src = []
-        for x in range(0, 1024 - 64, step):
-            for y in range(0, 1024 - 64, step):
-                patch_pic = pic[x:x+patch_size, y:y+patch_size]
-                if patch_pic.any():
-                    n_src.append(np.count_nonzero(patch_pic))
-                    xs.append(x)
-                    ys.append(y)
-
-        all_idx["x"].extend(xs)
-        all_idx["y"].extend(ys)
-        all_idx["pix2"].extend([i] * len(xs))
-        all_idx["n_src"].extend(n_src)
-
-    all_idx = pd.DataFrame(all_idx, index=np.arange(len(all_idx["x"])))
-
-    if n_patches is not None and len(all_idx) > n_patches:
-        step = len(all_idx) // n_patches
-        all_idx = all_idx.loc[::step]
-        all_idx.index = np.arange(len(all_idx))
-    return all_idx
-
-
 def draw_masks_and_save(cats_path: str, outpath: str, o_nside: int = 2, nside: int = 2**11,
                         radius: float = 5/60) -> None:
     """Draw masks for training.
@@ -274,6 +214,36 @@ def draw_masks_and_save(cats_path: str, outpath: str, o_nside: int = 2, nside: i
         np.save(os.path.join(outpath, f"{i}.npy"), pic)
 
 
+def calculate_n_src(patch_coords: pd.DataFrame, cluster_cat: pd.DataFrame, o_nside: int = 2,
+                    nside: int = 2**11, patch_size: int = 64) -> pd.DataFrame:
+    """Calculate n_src for patches.
+
+    :param patch_coords: table with patches.
+    :type patch_coords: pd.DataFrame
+    :param cluster_cat: List of clusters to calculate.
+    :type cluster_cat: pd.DataFrame
+    :param o_nside: Original nside.
+    :type o_nside: int
+    :param nside: Final nside.
+    :type nside: int
+    :param patch_size: Size of patch.
+    :type patch_size: int
+    :rtype: pd.DataFrame
+    """
+    patch_coords["n_src"] = None
+    for i in tqdm(range(hp.nside2npix(2))):
+        cur_patch_coords = patch_coords[patch_coords["pix2"] == i]
+        pix_matr = one_pixel_fragmentation(o_nside, i, nside)
+        pic = draw_dots(cluster_cat["RA"], cluster_cat["DEC"], nside=nside, pix_matr=pix_matr)
+        n_src = []
+        for x, y in zip(cur_patch_coords["x"], cur_patch_coords["y"]):
+            patch_pic = pic[x:x + patch_size, y:y + patch_size]
+            if patch_pic.any():
+                n_src.append(np.count_nonzero(patch_pic))
+        patch_coords.loc[patch_coords["pix2"] == i, "n_src"] = n_src
+    return patch_coords
+
+
 def update_old_dataset(path: str, cats_subset: List[str], patch_size: int = 64, o_nside: int = 2,
                        nside: int = 2**11) -> None:
     """Add n_src to old dataset.
@@ -296,16 +266,121 @@ def update_old_dataset(path: str, cats_subset: List[str], patch_size: int = 64, 
 
     df = pd.concat(cats.values())
     patch_coords = pd.read_csv(os.path.join(path, "pc.csv"))
-    patch_coords["n_src"] = None
-    for i in tqdm(range(hp.nside2npix(2))):
-        cur_patch_coords = patch_coords[patch_coords["pix2"] == i]
-        pix_matr = one_pixel_fragmentation(o_nside, i, nside)
-        pic = draw_dots(df["RA"], df["DEC"], nside=nside, pix_matr=pix_matr)
-        n_src = []
-        for x, y in zip(cur_patch_coords["x"], cur_patch_coords["y"]):
-            patch_pic = pic[x:x+patch_size, y:y+patch_size]
-            if patch_pic.any():
-                n_src.append(np.count_nonzero(patch_pic))
-        patch_coords.loc[patch_coords["pix2"] == i, "n_src"] = n_src
+    patch_coords = calculate_n_src(patch_coords, df, patch_size=patch_size, o_nside=o_nside,
+                                   nside=nside)
 
     patch_coords.to_csv(os.path.join(path, "pc.csv"), index=False)
+
+
+def generate_all_patches(cats_path: str, o_nside: int = 2, nside: int = 2**11,
+                         patch_size: int = 64, cats_subset: List[str] = None):
+    """Generate all patches withoud skipping.
+
+    :param cats_path: Path to directory with catalogs.
+    :type cats_path: str
+    :param o_nside: Original nside.
+    :type o_nside: int
+    :param nside: Final nside.
+    :type nside: int
+    :param patch_size: Size of patch.
+    :type patch_size: int
+    :param cats_subset: Subset of catalogs.
+    :type cats_subset: List[str]
+    """
+    cats = ADL.other.metr.cats2dict(cats_path)
+    if cats_subset is not None:
+        cats = {key: val for key, val in cats.items() if key in cats_subset}
+
+    df = pd.concat(cats.values())
+    all_idx = {"x": [], "y": [], "pix2": []}
+    for i in tqdm(range(hp.nside2npix(2))):
+        pix_matr = one_pixel_fragmentation(o_nside, i, nside)
+        pic = draw_dots(df["RA"], df["DEC"], nside=nside, pix_matr=pix_matr)
+        xs, ys = [], []
+        for x in range(0, 1024 - patch_size):
+            for y in range(0, 1024 - patch_size):
+                patch_pic = pic[x:x+patch_size, y:y+patch_size]
+                if patch_pic.any():
+                    xs.append(x)
+                    ys.append(y)
+
+        all_idx["x"].extend(xs)
+        all_idx["y"].extend(ys)
+        all_idx["pix2"].extend([i] * len(xs))
+
+    all_idx = pd.DataFrame(all_idx, index=np.arange(len(all_idx["x"])))
+    return all_idx
+
+
+def generate_patch_coords(cats_path: str, n_patches: int = None, cats_subset: List[str] = None,
+                          fit_pixels: Dict[str, List[int]] = None, density_cat_path: str = None
+                          ) -> pd.DataFrame:
+    """Create list of dots from which patches can be generated.
+
+    Each patch will contain at least one object from chosen catalogs.
+
+    :param cats_path: Path to directory with catalogs.
+    :type cats_path: str
+    :param n_patches: Number of patches.
+    :type n_patches: int
+    :param cats_subset: Subset of catalogs.
+    :type cats_subset: List[str]
+    :param fit_pixels: Train, val & test pixels to fit train & val patches to test distribution.
+    :type fit_pixels: Dict[str, List[int]]
+    :param density_cat_path: Path to cat which objects would be used for distributions.
+    :type density_cat_path: str
+    :rtype: pd.DataFrame
+    """
+    all_idx = generate_all_patches(cats_path, cats_subset=cats_subset)
+    if n_patches is not None and len(all_idx) > n_patches:
+        if fit_pixels is None:
+            step = len(all_idx) // n_patches
+            all_idx = all_idx.loc[::step]
+            all_idx.index = np.arange(len(all_idx))
+        else:
+            if density_cat_path is not None:
+                all_idx = calculate_n_src(all_idx, pd.read_csv(density_cat_path))
+            train_patches = all_idx[np.in1d(all_idx["pix2"], fit_pixels["train"])].copy()
+            val_patches = all_idx[np.in1d(all_idx["pix2"], fit_pixels["val"])].copy()
+            example_patches = all_idx[np.in1d(all_idx["pix2"], fit_pixels["example"])]
+            n_train = n_patches * len(fit_pixels["train"]) // 48
+            n_val = n_patches * len(fit_pixels["val"]) // 48
+            train_patches = fit_patches_to_distribution(example_patches, train_patches, n_train)
+            val_patches = fit_patches_to_distribution(example_patches, val_patches, n_val)
+            all_idx = pd.concat([train_patches, val_patches])
+    return all_idx
+
+
+def fit_patches_to_distribution(example: pd.DataFrame, unfitted: pd.DataFrame, n_patches: int
+                                ) -> pd.DataFrame:
+    """Fit unfitted patches to example distribution.
+
+    :param example: Example patches.
+    :type example: pd.DataFrame
+    :param unfitted: Unfitted patches.
+    :type unfitted: pd.DataFrame
+    :param n_patches: Nuber of patches that should be in result.
+    :type n_patches: int
+    :rtype: pd.DataFrame
+    """
+    m = max(example["n_src"].max(), unfitted["n_src"].max())
+    bins = np.arange(1, m + 2)
+    example_f, _ = np.histogram(example["n_src"], bins)
+    unfit_f, _ = np.histogram(unfitted["n_src"], bins)
+
+    coef = np.nan_to_num(unfit_f / example_f, 300)
+    if any(coef == 0):
+        example_f *= int(unfit_f.mean())
+        coef = np.nan_to_num(unfit_f / example_f, 300)
+    example_scale_f = coef * example_f
+
+    for i, n_src in enumerate(bins[:-1]):
+        n_extra = int(unfit_f[i] - example_scale_f[i])
+        if n_extra > 0:
+            idx = unfitted[unfitted["n_src"] == n_src].index
+            chosen = np.random.choice(idx, size=n_extra, replace=False)
+            unfitted.drop(chosen, axis="rows", inplace=True)
+
+    chosen = np.random.choice(unfitted.index, len(unfitted) - n_patches, replace=False)
+    unfitted.drop(chosen, inplace=True)
+    return unfitted
