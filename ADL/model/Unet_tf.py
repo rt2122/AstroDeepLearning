@@ -90,6 +90,7 @@ class ADL_Unet:
         self.history = []
 
     def get_old_history(self):
+        """Load old history."""
         history = pd.read_csv(os.path.join(os.path.dirname(self.model_path), "history.csv"))
         history.drop(columns=["epoch"], inplace=True)
         self.history = history.to_dict("records")
