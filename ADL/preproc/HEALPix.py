@@ -325,7 +325,8 @@ def generate_patch_coords(cats_path: str, n_patches: int = None, cats_subset: Li
     :type n_patches: int
     :param cats_subset: Subset of catalogs.
     :type cats_subset: List[str]
-    :param fit_pixels: Train, val & test pixels to fit train & val patches to test distribution.
+    :param fit_pixels: Train, val & example pixels to fit train & val patches to example
+      distribution. Set example to 'flat' to fit to flat distribution.
     :type fit_pixels: Dict[str, List[int]]
     :param density_cat_path: Path to cat which objects would be used for distributions.
     :type density_cat_path: str
@@ -342,11 +343,15 @@ def generate_patch_coords(cats_path: str, n_patches: int = None, cats_subset: Li
                 all_idx = calculate_n_src(all_idx, pd.read_csv(density_cat_path))
             train_patches = all_idx[np.in1d(all_idx["pix2"], fit_pixels["train"])].copy()
             val_patches = all_idx[np.in1d(all_idx["pix2"], fit_pixels["val"])].copy()
-            example_patches = all_idx[np.in1d(all_idx["pix2"], fit_pixels["example"])]
             n_train = n_patches * len(fit_pixels["train"]) // 48
             n_val = n_patches * len(fit_pixels["val"]) // 48
-            train_patches = fit_patches_to_distribution(example_patches, train_patches, n_train)
-            val_patches = fit_patches_to_distribution(example_patches, val_patches, n_val)
+            if type(fit_pixels["example"]) == list:
+                example_patches = all_idx[np.in1d(all_idx["pix2"], fit_pixels["example"])]
+                train_patches = fit_patches_to_distribution(example_patches, train_patches, n_train)
+                val_patches = fit_patches_to_distribution(example_patches, val_patches, n_val)
+            elif fit_pixels["example"] == "flat":
+                train_patches = fit_flat(train_patches, n_train)
+                val_patches = fit_flat(train_patches, n_val)
             all_idx = pd.concat([train_patches, val_patches])
     return all_idx
 
@@ -380,6 +385,36 @@ def fit_patches_to_distribution(example: pd.DataFrame, unfitted: pd.DataFrame, n
             idx = unfitted[unfitted["n_src"] == n_src].index
             chosen = np.random.choice(idx, size=n_extra, replace=False)
             unfitted.drop(chosen, axis="rows", inplace=True)
+
+    chosen = np.random.choice(unfitted.index, len(unfitted) - n_patches, replace=False)
+    unfitted.drop(chosen, inplace=True)
+    return unfitted
+
+
+def fit_flat(unfitted: pd.DataFrame, n_patches: int) -> pd.DataFrame:
+    """Fit to flat distribution (may add repeatitions).
+
+    :param unfitted: Unfitted patches.
+    :type unfitted: pd.DataFrame
+    :param n_patches: Number of patches in result.
+    :type n_patches: int
+    :rtype: pd.DataFrame
+    """
+    m = unfitted["n_src"].max()
+    bins = np.arange(1, m + 2)
+    unfit_f, _ = np.histogram(unfitted["n_src"], bins)
+    example_scale_f = [n_patches // len(unfit_f) + 1] * len(unfit_f)
+    for i, n_src in enumerate(bins[:-1]):
+        n_extra = int(unfit_f[i] - example_scale_f[i])
+        if n_extra > 0:
+            idx = unfitted[unfitted["n_src"] == n_src].index
+            chosen = np.random.choice(idx, size=n_extra, replace=False)
+            unfitted.drop(chosen, axis="rows", inplace=True)
+        elif n_extra < 0:
+            idx = unfitted[unfitted["n_src"] == n_src].index
+            chosen = np.random.choice(idx, size=-n_extra, replace=True)
+            chosen = unfitted.loc[chosen].copy()
+            unfitted = pd.concat([unfitted, chosen], ignore_index=True)
 
     chosen = np.random.choice(unfitted.index, len(unfitted) - n_patches, replace=False)
     unfitted.drop(chosen, inplace=True)
