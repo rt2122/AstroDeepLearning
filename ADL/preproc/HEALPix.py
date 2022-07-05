@@ -351,7 +351,7 @@ def generate_patch_coords(cats_path: str, n_patches: int = None, cats_subset: Li
                 val_patches = fit_patches_to_distribution(example_patches, val_patches, n_val)
             elif fit_pixels["example"] == "flat":
                 train_patches = fit_flat(train_patches, n_train)
-                val_patches = fit_flat(train_patches, n_val)
+                val_patches = fit_flat(val_patches, n_val)
             all_idx = pd.concat([train_patches, val_patches])
     return all_idx
 
