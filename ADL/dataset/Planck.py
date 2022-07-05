@@ -131,6 +131,8 @@ class Planck_Dataset:
         if self.shuffle:
             coords = coords.sample(frac=1)
         self.batches = split_dataframe(coords, self.batch_size)
+        if len(self.batches[-1]) == 0:
+            self.batches = self.batches[:-1]
 
     def __getitem__(self, idx: int) -> Tuple[np.ndarray]:
         """Get batch.
@@ -168,7 +170,7 @@ class Planck_Dataset:
         for i in range(len(self)):
             yield self[i]
         if self.shuffle:
-            self._split_batches
+            self._split_batches()
 
     def check_data(self, idx: int = 0, batch_idx: int = 0,
                    X: np.ndarray = None, Y: np.ndarray = None, pred: np.ndarray = None) -> None:

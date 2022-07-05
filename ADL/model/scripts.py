@@ -44,7 +44,7 @@ def train_Planck_Unet(model_name: str, data_path: str, target_path: str, model_p
     if pretrained != "":
         weights = pretrained
     dataset_train = Planck_Dataset(data_path=data_path, target_path=target_path,
-                                   pix2=pix_dict["train"], batch_size=int(batch_size))
+                                   pix2=pix_dict["train"], batch_size=int(batch_size), shuffle=True)
     dataset_train.prepare()
     dataset_val = Planck_Dataset(data_path=data_path, target_path=target_path,
                                  pix2=pix_dict["val"], batch_size=int(batch_size))
