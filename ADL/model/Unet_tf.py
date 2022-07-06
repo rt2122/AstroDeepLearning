@@ -10,7 +10,7 @@ from tensorflow.keras import Input
 from tensorflow.keras.layers import (Conv2D, MaxPooling2D, Dropout, concatenate, UpSampling2D,
                                      Activation, BatchNormalization)
 from tensorflow.keras.models import load_model, Model
-from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.keras.callbacks import ModelCheckpoint, LearningRateScheduler
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.activations import relu, sigmoid
 from tensorflow.keras.losses import binary_crossentropy
@@ -67,7 +67,7 @@ class ADL_Unet:
     :type n_blocks: int
     :param n_output_layers: Number of output layers.
     :type n_output_layers: int
-    :param lr: Learning rate.
+    :param lr: Learning rate.LearningRateScheduler
     :type lr: float
     :param add_batch_norm: Flag for batch normalization.
     :type add_batch_norm: bool
@@ -79,13 +79,19 @@ class ADL_Unet:
 
     def __init__(self, model_path: str, input_shape: Tuple[int] = (64, 64, 6), n_filters: int = 8,
                  n_blocks: int = 5, n_output_layers: int = 1, lr: float = 1e-4,
-                 add_batch_norm: bool = False, dropout_rate: float = 0.2, weights: str = None):
+                 add_batch_norm: bool = False, dropout_rate: float = 0.2, weights: str = None,
+                 lr_scheduler: str = None):
         """Initialize."""
         self.model = Unet_model(input_shape, n_filters, n_blocks, n_output_layers, lr,
                                 add_batch_norm, dropout_rate, weights)
-        self.checkpoint = ModelCheckpoint(model_path, monitor='val_loss', verbose=1,
-                                          save_best_only=False, mode='min', save_weights_only=False)
-
+        self.callbacks = [ModelCheckpoint(model_path, monitor='val_loss', verbose=1,
+                                          save_best_only=False, mode='min',
+                                          save_weights_only=False)]
+        if type(lr_scheduler) == str:
+            if lr_scheduler == "default":
+                self.callbacks.append(LearningRateScheduler(default_lr))
+            else:
+                print("LR preset not understood. No scheduler.")
         self.model_path = model_path
         self.history = []
 
@@ -118,7 +124,7 @@ class ADL_Unet:
         for i in range(init_epoch, init_epoch + n_epochs):
             print(f"Epoch #{i}")
             history = self.model.fit(trainset.generator(), epochs=i+1, verbose=1,
-                                     callbacks=[self.checkpoint],
+                                     callbacks=self.callbacks,
                                      validation_data=valset.generator(), initial_epoch=i)
             self.history.append(history.history)
             self.save_history()
@@ -145,6 +151,22 @@ class ADL_Unet:
         X, Y = dataset[idx]
         pred = self.model.predict(X)
         return X, Y, pred
+
+
+def default_lr(epoch: int, lr: float) -> float:
+    """Default LR scheduler.
+
+    :param epoch: Epoch.
+    :type epoch: int
+    :param lr: Learning Rate.
+    :type lr: float
+    :rtype: float
+    """
+    if epoch < 50:
+        return lr
+    elif epoch % 20 == 0:
+        return lr * 0.1
+    return lr
 
 
 def Unet_model(input_shape: Tuple[int] = (64, 64, 6), n_filters: int = 8, n_blocks: int = 5,

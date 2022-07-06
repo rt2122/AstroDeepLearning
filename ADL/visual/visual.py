@@ -69,8 +69,9 @@ def show_history(ax: matplotlib.axes.Axes, path: str, metrics: List = None,
 
         if val_flag:
             metric = 'val_' + metric
-            s, = ax.plot(epochs, df[metric], c=c, linestyle=':')
-            s.set_label(metric)
+            if metric in list(df):
+                s, = ax.plot(epochs, df[metric], c=c, linestyle=':')
+                s.set_label(metric)
 
     if find_min is not None:
         m = df[find_min].argmin()
