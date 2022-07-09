@@ -162,8 +162,6 @@ def default_lr(epoch: int, lr: float) -> float:
     :type lr: float
     :rtype: float
     """
-    if epoch < 50:
-        return lr
     elif epoch % 20 == 0:
         return lr * 0.1
     return lr
