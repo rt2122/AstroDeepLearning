@@ -15,7 +15,7 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.activations import relu, sigmoid
 from tensorflow.keras.losses import binary_crossentropy
 
-from typing import Tuple
+from typing import Tuple, Dict, Union
 
 
 def iou(y_pred: np.ndarray, y_true: np.ndarray) -> float:
@@ -80,7 +80,7 @@ class ADL_Unet:
     def __init__(self, model_path: str, input_shape: Tuple[int] = (64, 64, 6), n_filters: int = 8,
                  n_blocks: int = 5, n_output_layers: int = 1, lr: float = 1e-4,
                  add_batch_norm: bool = False, dropout_rate: float = 0.2, weights: str = None,
-                 lr_scheduler: str = None):
+                 lr_scheduler: Union[str, Dict[int, float]] = None):
         """Initialize."""
         self.model = Unet_model(input_shape, n_filters, n_blocks, n_output_layers, lr,
                                 add_batch_norm, dropout_rate, weights)
@@ -92,6 +92,9 @@ class ADL_Unet:
                 self.callbacks.append(LearningRateScheduler(default_lr))
             else:
                 print("LR preset not understood. No scheduler.")
+        elif type(lr_scheduler) == dict:
+            self.callbacks.append(LearningRateScheduler(lambda epoch, lr: dict_lr(epoch, lr,
+                                                                                  lr_scheduler)))
         self.model_path = model_path
         self.history = []
 
@@ -153,8 +156,25 @@ class ADL_Unet:
         return X, Y, pred
 
 
+def dict_lr(epoch: int, lr: float, epoch_dict: Dict[int, float]) -> float:
+    """LR scheduler depending on epoch_dict.
+
+    :param epoch: Epoch.
+    :type epoch: int
+    :param lr: Learning rate.
+    :type lr: float
+    :param epoch_dict: Dictionary with correspondence epoch->lr.
+      Example: {2: 10**-5, 20: 10**-8}
+    :type epoch_dict: Dict[int, float]
+    :rtype: float
+    """
+    if epoch not in epoch_dict:
+        return lr
+    return epoch_dict[epoch]
+
+
 def default_lr(epoch: int, lr: float) -> float:
-    """Default LR scheduler.
+    """Define changing LR. Default LR scheduler.
 
     :param epoch: Epoch.
     :type epoch: int
