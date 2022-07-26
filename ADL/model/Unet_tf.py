@@ -80,12 +80,12 @@ class ADL_Unet:
     def __init__(self, model_path: str, input_shape: Tuple[int] = (64, 64, 6), n_filters: int = 8,
                  n_blocks: int = 5, n_output_layers: int = 1, lr: float = 1e-4,
                  add_batch_norm: bool = False, dropout_rate: float = 0.2, weights: str = None,
-                 lr_scheduler: Union[str, Dict[int, float]] = None):
+                 lr_scheduler: Union[str, Dict[int, float]] = None, save_best_only: bool = False):
         """Initialize."""
         self.model = Unet_model(input_shape, n_filters, n_blocks, n_output_layers, lr,
                                 add_batch_norm, dropout_rate, weights)
         self.callbacks = [ModelCheckpoint(model_path, monitor='val_loss', verbose=1,
-                                          save_best_only=False, mode='min',
+                                          save_best_only=save_best_only, mode='min',
                                           save_weights_only=False)]
         if type(lr_scheduler) == str:
             if lr_scheduler == "default":

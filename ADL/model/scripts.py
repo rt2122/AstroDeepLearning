@@ -7,7 +7,8 @@ import os
 
 def train_Planck_Unet(model_name: str, data_path: str, target_path: str, model_path: str,
                       pixels: str, pretrained: str, batch_size: str, epochs: str,
-                      device: str, continue_train: bool = False, lr_scheduler: str = None) -> None:
+                      device: str, continue_train: bool = False, lr_scheduler: str = None,
+                      save_best_only: bool = False) -> None:
     """Full process of training.
 
     :param data_path: Path to data.
@@ -51,5 +52,5 @@ def train_Planck_Unet(model_name: str, data_path: str, target_path: str, model_p
     dataset_val.prepare()
 
     model = ADL_Unet(os.path.join(model_path, model_name + "_ep{epoch:03}.hdf5"), weights=weights,
-                     lr_scheduler=lr_scheduler)
+                     lr_scheduler=lr_scheduler, save_best_only=save_best_only)
     model.train(dataset_train, dataset_val, int(epochs), continue_train=continue_train)
