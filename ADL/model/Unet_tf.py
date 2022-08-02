@@ -8,7 +8,7 @@ from ADL.dataset import Planck_Dataset
 from tensorflow.keras import backend as K
 from tensorflow.keras import Input
 from tensorflow.keras.layers import (Conv2D, MaxPooling2D, Dropout, concatenate, UpSampling2D,
-                                     Activation, BatchNormalization)
+                                     Activation, BatchNormalization, Layer, Conv2DTranspose)
 from tensorflow.keras.models import load_model, Model
 from tensorflow.keras.callbacks import ModelCheckpoint, LearningRateScheduler
 from tensorflow.keras.optimizers import Adam
@@ -65,8 +65,8 @@ class ADL_Unet:
     :type n_filters: int
     :param n_blocks: Number of blocks.
     :type n_blocks: int
-    :param n_output_layers: Number of output layers.
-    :type n_output_layers: int
+    :param n_classes: Number of output layers.
+    :type n_classes: int
     :param lr: Learning rate.LearningRateScheduler
     :type lr: float
     :param add_batch_norm: Flag for batch normalization.
@@ -78,12 +78,17 @@ class ADL_Unet:
     """
 
     def __init__(self, model_path: str, input_shape: Tuple[int] = (64, 64, 6), n_filters: int = 8,
-                 n_blocks: int = 5, n_output_layers: int = 1, lr: float = 1e-4,
+                 n_blocks: int = 5, n_classes: int = 1, lr: float = 1e-4,
                  add_batch_norm: bool = False, dropout_rate: float = 0.2, weights: str = None,
-                 lr_scheduler: Union[str, Dict[int, float]] = None, save_best_only: bool = False):
+                 lr_scheduler: Union[str, Dict[int, float]] = None, save_best_only: bool = False,
+                 old_version: bool = False):
         """Initialize."""
-        self.model = Unet_model(input_shape, n_filters, n_blocks, n_output_layers, lr,
-                                add_batch_norm, dropout_rate, weights)
+        if old_version:
+            self.model = Unet_model_old(input_shape, n_filters, n_blocks, n_classes, lr,
+                                        add_batch_norm, dropout_rate, weights)
+        else:
+            self.model = Unet_model(input_shape, n_classes=n_classes, dropout_rate=dropout_rate,
+                                    n_filters=n_filters, n_blocks=n_blocks)
         self.callbacks = [ModelCheckpoint(model_path, monitor='val_loss', verbose=1,
                                           save_best_only=save_best_only, mode='min',
                                           save_weights_only=False)]
@@ -187,10 +192,97 @@ def default_lr(epoch: int, lr: float) -> float:
     return lr
 
 
-def Unet_model(input_shape: Tuple[int] = (64, 64, 6), n_filters: int = 8, n_blocks: int = 5,
-               n_output_layers: int = 1, lr: float = 1e-4, add_batch_norm: bool = False,
-               dropout_prm: float = 0.2, weights: str = None) -> Model:
-    """Create tensorflow model Unet.
+def conv_block(inputs: Layer, use_batch_norm: bool = False, dropout_rate: float = 0.3,
+               filters: int = 16, kernel_size: Tuple[int] = (3, 3), activation: str = "relu",
+               kernel_initializer: str = "he_normal", padding: str = "same"):
+    """Double convolution block.
+
+    :param inputs: Input layer.
+    :type inputs: Layer
+    :param use_batch_norm: Flag for batch normalization.
+    :type use_batch_norm: bool
+    :param dropout_rate: Dropout rate.
+    :type dropout_rate: float
+    :param filters: Number of filters for convolutions.
+    :type filters: int
+    :param kernel_size: Kernel size.
+    :type kernel_size: Tuple[int]
+    :param activation: Activation type.
+    :type activation: str
+    :param kernel_initializer: Kernel initializer type.
+    :type kernel_initializer: str
+    :param padding: Padding type.
+    :type padding: str
+    """
+
+    c = Conv2D(filters, kernel_size, activation=activation, kernel_initializer=kernel_initializer,
+               padding=padding, use_bias=not use_batch_norm)(inputs)
+    if use_batch_norm:
+        c = BatchNormalization()(c)
+    if dropout_rate > 0.0:
+        c = Dropout(dropout_rate)(c)
+    c = Conv2D(filters, kernel_size, activation=activation, kernel_initializer=kernel_initializer,
+               padding=padding, use_bias=not use_batch_norm)(c)
+    if use_batch_norm:
+        c = BatchNormalization()(c)
+    return c
+
+
+def Unet_model(input_shape: Tuple[int] = (64, 64, 6), n_classes: int = 1,
+               dropout_rate: float = 0.3, n_filters: int = 64, n_blocks: int = 4,
+               output_activation: str = 'sigmoid', lr: float = 10**-4):
+    """Unet model.
+
+    :param input_shape: Shape of input data.
+    :type input_shape: Tuple[int]
+    :param num_classes: Number of classes.
+    :type num_classes: int
+    :param dropout_rate: Dropout rate.
+    :type dropout_rate: float
+    :param n_filters: Number of filters.
+    :type n_filters: int
+    :param n_blocks: Number of blocks.
+    :type n_blocks: int
+    :param output_activation: Output activation type.
+    :type output_activation: str
+    :param lr: Learning rate.
+    :type lr: float
+    """
+
+    inputs = Input(input_shape)
+    x = inputs
+
+    encoder = []
+    for i in range(n_blocks):
+        x = conv_block(inputs=x, filters=n_filters, use_batch_norm=False, dropout_rate=0.0,
+                       padding='same')
+        encoder.append(x)
+        x = MaxPooling2D((2, 2), strides=2)(x)
+        n_filters *= 2
+
+    x = Dropout(dropout_rate)(x)
+    x = conv_block(inputs=x, filters=n_filters, use_batch_norm=False, dropout_rate=0.0,
+                   padding='same')
+
+    for conv in reversed(encoder):
+        n_filters //= 2
+        x = Conv2DTranspose(n_filters, (2, 2), strides=(2, 2), padding='same')(x)
+
+        x = concatenate([x, conv])
+        x = conv_block(inputs=x, filters=n_filters, use_batch_norm=False, dropout_rate=0.0,
+                       padding='same')
+
+    outputs = Conv2D(n_classes, (1, 1), activation=output_activation)(x)
+
+    model = Model(inputs=[inputs], outputs=[outputs])
+    model.compile(optimizer=Adam(lr=lr), loss=binary_crossentropy, metrics=['accuracy', iou, dice])
+    return model
+
+
+def Unet_model_old(input_shape: Tuple[int] = (64, 64, 6), n_filters: int = 8, n_blocks: int = 5,
+                   n_output_layers: int = 1, lr: float = 1e-4, add_batch_norm: bool = False,
+                   dropout_prm: float = 0.2, weights: str = None) -> Model:
+    """Create tensorflow model Unet (old version with big amount of parameters).
 
     :param input_shape: Shape of input data. Default for Planck data.
     :type input_shape: Tuple[int]
