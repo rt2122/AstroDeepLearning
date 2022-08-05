@@ -29,8 +29,9 @@ def get_ax(rows: int = 1, cols: int = 1, scale: int = 12, shape: Tuple[int] = No
     return f, ax
 
 
-def show_history(ax: matplotlib.axes.Axes, path: str, metrics: List = None,
-                 epochs: List = None, find_min: str = None, find_max: str = None) -> None:
+def show_history(ax: matplotlib.axes.Axes, path: str, metrics: List[str] = None,
+                 epochs: List = None, find_min: str = None, find_max: str = None,
+                 datasets: List[str] = []) -> None:
     """Show history for model.
 
     :param ax: Axes to plot train curve.
@@ -45,6 +46,8 @@ def show_history(ax: matplotlib.axes.Axes, path: str, metrics: List = None,
     :type find_min: str
     :param find_max: Name of metric for which maximum would be found.
     :type find_max: str
+    :param datasets: Validation datasets.
+    :type datasets: List[str]
     :rtype: None
     """
     if ax is None:
@@ -59,19 +62,17 @@ def show_history(ax: matplotlib.axes.Axes, path: str, metrics: List = None,
 
     if metrics is None:
         metrics = [k for k in list(df) if k != 'epoch']
-    n_metr = len(metrics)
-    metrics = list(filter(lambda x: not x.startswith('val'), metrics))
-    val_flag = n_metr != len(metrics)
 
     for metric, c in zip(metrics, cycle(colors)):
         s, = ax.plot(epochs, df[metric], c=c)
         s.set_label(metric)
 
-        if val_flag:
-            metric = 'val_' + metric
-            if metric in list(df):
-                s, = ax.plot(epochs, df[metric], c=c, linestyle=':')
-                s.set_label(metric)
+        if len(datasets) > 0:
+            for dataset, linestyle in zip(datasets, ["--", ":", "-."]):
+                cur_metric = dataset + '_' + metric
+                if cur_metric in df.columns:
+                    s, = ax.plot(epochs, df[cur_metric], c=c, linestyle=linestyle)
+                    s.set_label(cur_metric)
 
     if find_min is not None:
         m = df[find_min].argmin()
