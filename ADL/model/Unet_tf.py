@@ -10,12 +10,12 @@ from tensorflow.keras import Input
 from tensorflow.keras.layers import (Conv2D, MaxPooling2D, Dropout, concatenate, UpSampling2D,
                                      Activation, BatchNormalization, Layer, Conv2DTranspose)
 from tensorflow.keras.models import load_model, Model
-from tensorflow.keras.callbacks import ModelCheckpoint, LearningRateScheduler
+from tensorflow.keras.callbacks import ModelCheckpoint, LearningRateScheduler, Callback
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.activations import relu, sigmoid
 from tensorflow.keras.losses import binary_crossentropy
 
-from typing import Tuple, Dict, Union
+from typing import Tuple, Dict, Union, List
 
 
 def iou(y_pred: np.ndarray, y_true: np.ndarray) -> float:
@@ -75,13 +75,22 @@ class ADL_Unet:
     :type dropout_rate: float
     :param weights: Path to pretrained weights.
     :type weights: str
+    :param lr_scheduler: LR preset or dictionary with correspondence epoch->lr.
+        Example: {2: 10**-5, 20: 10**-8}
+    :type lr_scheduler: Union[str, Dict[int, float]]
+    :param save_best_only: Flag for saving only best model and not every epoch.
+    :type save_best_only: bool
+    :param old_version: Flag for old version of Unet with a lot of parameters.
+    :type old_version: bool
+    :param test_as_val: Add test dataset to see its metrics.
+    :type test_as_val: Planck_Dataset
     """
 
     def __init__(self, model_path: str, input_shape: Tuple[int] = (64, 64, 6), n_filters: int = 8,
                  n_blocks: int = 5, n_classes: int = 1, lr: float = 1e-4,
                  add_batch_norm: bool = False, dropout_rate: float = 0.2, weights: str = None,
                  lr_scheduler: Union[str, Dict[int, float]] = None, save_best_only: bool = False,
-                 old_version: bool = False):
+                 old_version: bool = False, test_as_val: Planck_Dataset = None):
         """Initialize."""
         if old_version:
             self.model = Unet_model_old(input_shape, n_filters, n_blocks, n_classes, lr,
@@ -100,6 +109,11 @@ class ADL_Unet:
         elif type(lr_scheduler) == dict:
             self.callbacks.append(LearningRateScheduler(lambda epoch, lr: dict_lr(epoch, lr,
                                                                                   lr_scheduler)))
+
+        self.test_as_val = False
+        if test_as_val is not None:
+            self.callbacks.append(AdditionalValidationSets([(test_as_val, "test")], verbose=1))
+            self.test_as_val = True
         self.model_path = model_path
         self.history = []
 
@@ -134,7 +148,13 @@ class ADL_Unet:
             history = self.model.fit(trainset.generator(), epochs=i+1, verbose=1,
                                      callbacks=self.callbacks,
                                      validation_data=valset.generator(), initial_epoch=i)
-            self.history.append(history.history)
+            if self.test_as_val:
+                for callback in self.callbacks:
+                    if type(callback) == AdditionalValidationSets:
+                        self.history.append(callback.history)
+                        break
+            else:
+                self.history.append(history.history)
             self.save_history()
 
     def save_history(self) -> None:
@@ -358,3 +378,65 @@ def Unet_model_old(input_shape: Tuple[int] = (64, 64, 6), n_filters: int = 8, n_
     model = Model(inputs=inputs, outputs=prev)
     model.compile(optimizer=Adam(lr=lr), loss=binary_crossentropy, metrics=['accuracy', iou, dice])
     return model
+
+
+class AdditionalValidationSets(Callback):
+    """
+    Edited version form `here
+    https://github.com/LucaCappelletti94/keras_validation_sets/blob/master/additional_validation_sets.py
+    `_.
+    """
+    def __init__(self, validation_sets: List[Tuple[Planck_Dataset, str]], verbose: int = 0):
+        """Initialize.
+
+        :param validation_sets: list of 2-tuples (dataset, name).
+        :type validation_sets: List[Tuple[Planck_Dataset, str]]
+        :param verbose: Verbosity mode, 1 or 0.
+        :type verbose: int
+        """
+        super(AdditionalValidationSets, self).__init__()
+        self.validation_sets = validation_sets
+        for validation_set in self.validation_sets:
+            if len(validation_set) != 2:
+                raise ValueError()
+        self.epoch = []
+        self.history = {}
+        self.verbose = verbose
+
+    def on_train_begin(self, logs: Dict = None):
+        """on_train_begin.
+
+        :param logs: Logs
+        :type logs: Dict
+        """
+        self.epoch = []
+        self.history = {}
+
+    def on_epoch_end(self, epoch: int, logs: Dict = None):
+        """on_epoch_end.
+
+        :param epoch: Number of epoch.
+        :type epoch: int
+        :param logs: Logs.
+        :type logs: Dict
+        """
+        logs = logs or {}
+        self.epoch.append(epoch)
+
+        # record the same values as History() as well
+        for k, v in logs.items():
+            self.history.setdefault(k, []).append(v)
+
+        # evaluate on the additional validation sets
+        for validation_set in self.validation_sets:
+            if len(validation_set) == 2:
+                dataset, validation_set_name = validation_set
+                validation_generator = dataset.generator()
+                validation_steps = len(dataset)
+            else:
+                raise ValueError()
+            results = self.model.evaluate(validation_generator, steps=validation_steps)
+
+            for metric, result in zip(self.model.metrics_names, results):
+                valuename = validation_set_name + '_' + metric
+                self.history.setdefault(valuename, []).append(result)
