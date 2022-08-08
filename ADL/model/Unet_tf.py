@@ -250,7 +250,8 @@ def conv_block(inputs: Layer, use_batch_norm: bool = False, dropout_rate: float 
 
 def Unet_model(input_shape: Tuple[int] = (64, 64, 6), n_classes: int = 1,
                dropout_rate: float = 0.3, n_filters: int = 64, n_blocks: int = 4,
-               output_activation: str = 'sigmoid', lr: float = 10**-4):
+               output_activation: str = 'sigmoid', lr: float = 10**-4, weights: str = None
+               ) -> Model:
     """Unet model.
 
     :param input_shape: Shape of input data.
@@ -267,7 +268,15 @@ def Unet_model(input_shape: Tuple[int] = (64, 64, 6), n_classes: int = 1,
     :type output_activation: str
     :param lr: Learning rate.
     :type lr: float
+    :param weights: Path to pretrained weights.
+    :type weights: str
+    :rtype: Model
     """
+    if weights is not None:
+        model = load_model(weights, custom_objects={'iou': iou, 'dice': dice})
+        model.compile(optimizer=Adam(lr=lr), loss=binary_crossentropy, metrics=['accuracy',
+                                                                                iou, dice])
+        return model
 
     inputs = Input(input_shape)
     x = inputs
