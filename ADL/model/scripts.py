@@ -8,7 +8,8 @@ import os
 def train_Planck_Unet(model_name: str, data_path: str, target_path: str, model_path: str,
                       pixels: str, pretrained: str, batch_size: str, epochs: str,
                       device: str, continue_train: bool = False, lr_scheduler: str = None,
-                      save_best_only: bool = False, test_as_val: bool = False) -> None:
+                      save_best_only: bool = False, test_as_val: bool = False,
+                      n_filters: int = 8, n_blocks: int = 5) -> None:
     """Full process of training.
 
     :param data_path: Path to data.
@@ -27,6 +28,18 @@ def train_Planck_Unet(model_name: str, data_path: str, target_path: str, model_p
     :type epochs: str
     :param device: Device for training. 'cpu' or 'gpu'.
     :type device: str
+    :param continue_train: Find history file and get number of last epoch.
+    :type continue_train: bool
+    :param lr_scheduler: LR scheduler.
+    :type lr_scheduler: str
+    :param save_best_only: Flag for saving only best models.
+    :type save_best_only: bool
+    :param test_as_val: Flag for adding test metrics.
+    :type test_as_val: bool
+    :param n_filters: Number of filters in block.
+    :type n_filters: int
+    :param n_blocks: Number of blocks.
+    :type n_blocks: int
     :rtype: None
     """
     if device == 'cpu':
@@ -59,5 +72,5 @@ def train_Planck_Unet(model_name: str, data_path: str, target_path: str, model_p
 
     model = ADL_Unet(os.path.join(model_path, model_name + "_ep{epoch:03}.hdf5"), weights=weights,
                      lr_scheduler=lr_scheduler, save_best_only=save_best_only,
-                     test_as_val=dataset_test)
+                     test_as_val=dataset_test, n_filters=n_filters, n_blocks=n_blocks)
     model.train(dataset_train, dataset_val, int(epochs), continue_train=continue_train)
