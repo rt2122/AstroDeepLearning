@@ -8,11 +8,10 @@ from ADL.dataset import Planck_Dataset
 from tensorflow.keras import backend as K
 from tensorflow.keras import Input
 from tensorflow.keras.layers import (Conv2D, MaxPooling2D, Dropout, concatenate, UpSampling2D,
-                                     Activation, BatchNormalization, Layer, Conv2DTranspose)
+                                     BatchNormalization, Layer, Conv2DTranspose)
 from tensorflow.keras.models import load_model, Model
 from tensorflow.keras.callbacks import ModelCheckpoint, LearningRateScheduler, Callback
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.activations import relu, sigmoid
 from tensorflow.keras.losses import binary_crossentropy
 
 from typing import Tuple, Dict, Union, List
@@ -82,6 +81,8 @@ class ADL_Unet:
     :type save_best_only: bool
     :param old_version: Flag for old version of Unet with a lot of parameters.
     :type old_version: bool
+    :param old_upgrade: Flag for upgraded version of old Unet.
+    :type old_version: bool
     :param test_as_val: Add test dataset to see its metrics.
     :type test_as_val: Planck_Dataset
     """
@@ -90,11 +91,12 @@ class ADL_Unet:
                  n_blocks: int = 5, n_classes: int = 1, lr: float = 1e-4,
                  add_batch_norm: bool = False, dropout_rate: float = 0.2, weights: str = None,
                  lr_scheduler: Union[str, Dict[int, float]] = None, save_best_only: bool = False,
-                 old_version: bool = False, test_as_val: Planck_Dataset = None):
+                 old_version: bool = False, old_upgrade: bool = False,
+                 test_as_val: Planck_Dataset = None):
         """Initialize."""
         if old_version:
             self.model = Unet_model_old(input_shape, n_filters, n_blocks, n_classes, lr,
-                                        add_batch_norm, dropout_rate, weights)
+                                        add_batch_norm, dropout_rate, weights, upgrade=old_upgrade)
         else:
             self.model = Unet_model(input_shape, n_classes=n_classes, dropout_rate=dropout_rate,
                                     n_filters=n_filters, n_blocks=n_blocks)
@@ -310,7 +312,7 @@ def Unet_model(input_shape: Tuple[int] = (64, 64, 6), n_classes: int = 1,
 
 def Unet_model_old(input_shape: Tuple[int] = (64, 64, 6), n_filters: int = 8, n_blocks: int = 5,
                    n_output_layers: int = 1, lr: float = 1e-4, add_batch_norm: bool = False,
-                   dropout_prm: float = 0.2, weights: str = None) -> Model:
+                   dropout_prm: float = 0.2, weights: str = None, upgrade: bool = False) -> Model:
     """Create tensorflow model Unet (old version with big amount of parameters).
 
     :param input_shape: Shape of input data. Default for Planck data.
@@ -329,6 +331,8 @@ def Unet_model_old(input_shape: Tuple[int] = (64, 64, 6), n_filters: int = 8, n_
     :type dropout_rate: float
     :param weights: Path to pretrained weights.
     :type weights: str
+    :param upgrade: Flag for upgraded version of Unet.
+    :type upgrade: bool
     :rtype: Model
     """
     if weights is not None:
@@ -339,52 +343,37 @@ def Unet_model_old(input_shape: Tuple[int] = (64, 64, 6), n_filters: int = 8, n_
 
     encoder = []
     inputs = Input(input_shape)
-    prev = inputs
+    cur = inputs
     for i in range(n_blocks):
-        cur = Conv2D(filters=n_filters, kernel_size=(3, 3), padding='same',
-                     kernel_initializer='he_normal')(prev)
-        if add_batch_norm:
-            cur = BatchNormalization()(cur)
-        else:
-            cur = Dropout(dropout_prm)(cur)
-        cur = Activation(relu)(cur)
-
-        cur = Conv2D(filters=n_filters, kernel_size=(3, 3), padding='same',
-                     kernel_initializer='he_normal')(cur)
-
-        if add_batch_norm:
-            cur = BatchNormalization()(cur)
-        else:
-            cur = Dropout(dropout_prm)(cur)
-        cur = Activation(relu)(cur)
+        cur = conv_block(inputs=cur, filters=n_filters, use_batch_norm=add_batch_norm,
+                         dropout_rate=0.0, padding="same")
 
         encoder.append(cur)
 
         cur = MaxPooling2D(padding='valid')(cur)
 
         n_filters *= 2
-        prev = cur
+    cur = Dropout(dropout_prm)(cur)
+    if upgrade:
+        cur = conv_block(inputs=cur, filters=n_filters, use_batch_norm=add_batch_norm,
+                         dropout_rate=0.0, padding="same")
 
-    for i in range(n_blocks - 1, -1, -1):
-        cur = UpSampling2D()(prev)
-        cur = Conv2D(filters=n_filters, kernel_size=3, padding='same')(cur)
-        if not add_batch_norm:
-            cur = Dropout(dropout_prm)(cur)
-        cur = Activation(relu)(cur)
+    for i in reversed(range(n_blocks)):
+        cur = UpSampling2D()(cur)
+        cur = Conv2D(filters=n_filters, kernel_size=(3, 3), activation="relu",
+                     kernel_initializer="he_normal", padding="same",
+                     use_bias=not add_batch_norm)(cur)
         cur = concatenate([cur, encoder[i]], axis=3)
 
-        cur = Conv2D(filters=n_filters, kernel_size=3, padding='same')(cur)
-        cur = Activation(relu)(cur)
-        if not add_batch_norm:
-            cur = Dropout(dropout_prm)(cur)
+        cur = Conv2D(filters=n_filters, kernel_size=(3, 3), activation="relu",
+                     kernel_initializer="he_normal", padding="same",
+                     use_bias=not add_batch_norm)(cur)
 
-        prev = cur
         n_filters //= 2
 
-    prev = Conv2D(n_output_layers, kernel_size=3, padding='same')(prev)
-    prev = Activation(sigmoid)(prev)
+    cur = Conv2D(n_output_layers, kernel_size=3, padding='same', activation="sigmoid")(cur)
 
-    model = Model(inputs=inputs, outputs=prev)
+    model = Model(inputs=inputs, outputs=cur)
     model.compile(optimizer=Adam(lr=lr), loss=binary_crossentropy, metrics=['accuracy', iou, dice])
     return model
 
