@@ -351,9 +351,9 @@ def Unet_model_old(input_shape: Tuple[int] = (64, 64, 6), n_filters: int = 8, n_
         encoder.append(cur)
 
         cur = MaxPooling2D(padding='valid')(cur)
+        cur = Dropout(dropout_prm)(cur)
 
         n_filters *= 2
-    cur = Dropout(dropout_prm)(cur)
     if upgrade:
         cur = conv_block(inputs=cur, filters=n_filters, use_batch_norm=add_batch_norm,
                          dropout_rate=0.0, padding="same")
@@ -368,6 +368,7 @@ def Unet_model_old(input_shape: Tuple[int] = (64, 64, 6), n_filters: int = 8, n_
         cur = Conv2D(filters=n_filters, kernel_size=(3, 3), activation="relu",
                      kernel_initializer="he_normal", padding="same",
                      use_bias=not add_batch_norm)(cur)
+        cur = Dropout(dropout_prm)(cur)
 
         n_filters //= 2
 
