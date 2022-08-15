@@ -20,15 +20,15 @@ def preproc_HFI_Planck(inpath: str, outpath: str) -> None:
     :type outpath: str
     :rtype: None
     """
-    files_by_ch = match_channels(inpath, [100, 143, 217, 353, 545, 857])
+    files_by_ch = match_channels(inpath, ["100", "143", "217", "353", "545", "857"])
     data_by_ch = {ch: fits2df(os.path.join(inpath, file), "I_STOKES")
                   for ch, file in files_by_ch.items()}
-    data_by_ch[100] = normalize_asym(data_by_ch[100])
-    data_by_ch[143] = normalize_asym(data_by_ch[143])
-    data_by_ch[217] = normalize_asym(data_by_ch[217])
-    data_by_ch[353] = normalize_asym(data_by_ch[353], p=(10**-4, 0.99))
-    data_by_ch[545] = normalize_asym(data_by_ch[545], p=(10**-5, 0.9))
-    data_by_ch[857] = normalize_asym(data_by_ch[857], p=(10**-5, 0.9))
+    data_by_ch["100"] = normalize_asym(data_by_ch["100"])
+    data_by_ch["143"] = normalize_asym(data_by_ch["143"])
+    data_by_ch["217"] = normalize_asym(data_by_ch["217"])
+    data_by_ch["353"] = normalize_asym(data_by_ch["353"], p=(10**-4, 0.99))
+    data_by_ch["545"] = normalize_asym(data_by_ch["545"], p=(10**-5, 0.9))
+    data_by_ch["857"] = normalize_asym(data_by_ch["857"], p=(10**-5, 0.9))
 
     for ipix in tqdm(range(hp.nside2npix(2))):
         pix_matr = one_pixel_fragmentation(2, ipix, 2**11)

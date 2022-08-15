@@ -27,19 +27,19 @@ def extract_data_key(path: str, key: str, idx: int = 1) -> np.ndarray:
         return hdul[idx].data[key]
 
 
-def match_channels(indir: str, channels: List[int]) -> Dict[int, str]:
+def match_channels(indir: str, channels: List[str]) -> Dict[str, str]:
     """For each channel find corresponding file.
 
     :param indir: Input dir.
     :type indir: str
     :param channels: channels.
-    :type channels: List[int]
-    :rtype: Dict[int, str]
+    :type channels: List[str]
+    :rtype: Dict[str, str]
     """
     files = sorted(os.listdir(indir))
     files_by_ch = {}
     for channel in channels:
-        file = list(filter(lambda x: str(channel) in x, files))[0]
+        file = list(filter(lambda x: channel in x, files))[0]
         files_by_ch[channel] = os.path.join(indir, file)
     return files_by_ch
 
