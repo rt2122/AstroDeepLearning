@@ -8,7 +8,7 @@ from ADL.dataset import Planck_Dataset
 from tensorflow.keras import backend as K
 from tensorflow.keras import Input
 from tensorflow.keras.layers import (Conv2D, MaxPooling2D, Dropout, concatenate, UpSampling2D,
-                                     BatchNormalization, Layer, Conv2DTranspose)
+                                     BatchNormalization, Layer)
 from tensorflow.keras.models import load_model, Model
 from tensorflow.keras.callbacks import ModelCheckpoint, LearningRateScheduler, Callback
 from tensorflow.keras.optimizers import Adam
@@ -251,7 +251,7 @@ def conv_block(inputs: Layer, use_batch_norm: bool = False, dropout_rate: float 
 
 
 def Unet_model(input_shape: Tuple[int] = (64, 64, 6), n_classes: int = 1,
-               dropout_rate: float = 0.3, n_filters: int = 64, n_blocks: int = 4,
+               dropout_rate: float = 0.2, n_filters: int = 64, n_blocks: int = 4,
                output_activation: str = 'sigmoid', lr: float = 10**-4, weights: str = None
                ) -> Model:
     """Unet model.
@@ -289,19 +289,20 @@ def Unet_model(input_shape: Tuple[int] = (64, 64, 6), n_classes: int = 1,
                        padding='same')
         encoder.append(x)
         x = MaxPooling2D((2, 2), strides=2)(x)
+        x = Dropout(dropout_rate)(x)
         n_filters *= 2
 
-    x = Dropout(dropout_rate)(x)
     x = conv_block(inputs=x, filters=n_filters, use_batch_norm=False, dropout_rate=0.0,
                    padding='same')
 
     for conv in reversed(encoder):
         n_filters //= 2
-        x = Conv2DTranspose(n_filters, (2, 2), strides=(2, 2), padding='same')(x)
+        x = UpSampling2D()(x)
 
         x = concatenate([x, conv])
         x = conv_block(inputs=x, filters=n_filters, use_batch_norm=False, dropout_rate=0.0,
                        padding='same')
+        x = Dropout(dropout_rate)(x)
 
     outputs = Conv2D(n_classes, (1, 1), activation=output_activation)(x)
 
