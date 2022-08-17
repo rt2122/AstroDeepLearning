@@ -118,7 +118,7 @@ def cut_cat(df: pd.DataFrame, dict_cut: Dict[str, Callable[[float], bool]] = {},
     :param df: Input catalog.
     :type df: pd.DataFrame
     :param dict_cut: Conditions for catalog parameters.
-    :type dict_cut: Dict[str, List[float]]
+    :type dict_cut: Dict[str, Callable[[float], bool]]
     :param big_pix: List of pixels with nside=2.
     :type big_pix: List[int]
     :rtype: pd.DataFrame
