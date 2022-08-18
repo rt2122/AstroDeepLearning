@@ -3,6 +3,7 @@ from . import ADL_Unet
 from ADL.dataset import Planck_Dataset
 from ADL.model import pixels as p
 import os
+from typing import Dict
 
 
 def train_Planck_Unet(model_name: str, data_path: str, target_path: str, model_path: str,
@@ -10,7 +11,7 @@ def train_Planck_Unet(model_name: str, data_path: str, target_path: str, model_p
                       device: str, continue_train: bool = False, lr_scheduler: str = None,
                       save_best_only: bool = False, test_as_val: bool = False,
                       n_filters: int = 8, n_blocks: int = 5, old_version: bool = False,
-                      old_upgrade: bool = False) -> None:
+                      model_prms: Dict = {}) -> None:
     """Full process of training.
 
     :param data_path: Path to data.
@@ -74,5 +75,5 @@ def train_Planck_Unet(model_name: str, data_path: str, target_path: str, model_p
     model = ADL_Unet(os.path.join(model_path, model_name + "_ep{epoch:03}.hdf5"), weights=weights,
                      lr_scheduler=lr_scheduler, save_best_only=save_best_only,
                      test_as_val=dataset_test, n_filters=n_filters, n_blocks=n_blocks,
-                     old_version=old_version, old_upgrade=old_upgrade)
+                     old_version=old_version, model_prms=model_prms)
     model.train(dataset_train, dataset_val, int(epochs), continue_train=continue_train)

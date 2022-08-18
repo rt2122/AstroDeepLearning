@@ -81,8 +81,6 @@ class ADL_Unet:
     :type save_best_only: bool
     :param old_version: Flag for old version of Unet with a lot of parameters.
     :type old_version: bool
-    :param old_upgrade: Flag for upgraded version of old Unet.
-    :type old_version: bool
     :param test_as_val: Add test dataset to see its metrics.
     :type test_as_val: Planck_Dataset
     """
@@ -92,14 +90,14 @@ class ADL_Unet:
                  add_batch_norm: bool = False, dropout_rate: float = 0.2, weights: str = None,
                  lr_scheduler: Union[str, Dict[int, float]] = None, save_best_only: bool = False,
                  old_version: bool = False, old_upgrade: bool = False,
-                 test_as_val: Planck_Dataset = None):
+                 test_as_val: Planck_Dataset = None, model_prms: Dict = {}):
         """Initialize."""
         if old_version:
             self.model = Unet_model_old(input_shape, n_filters, n_blocks, n_classes, lr,
-                                        add_batch_norm, dropout_rate, weights, upgrade=old_upgrade)
+                                        add_batch_norm, dropout_rate, weights, **model_prms)
         else:
             self.model = Unet_model(input_shape, n_classes=n_classes, dropout_rate=dropout_rate,
-                                    n_filters=n_filters, n_blocks=n_blocks)
+                                    n_filters=n_filters, n_blocks=n_blocks, **model_prms)
         self.callbacks = [ModelCheckpoint(model_path, monitor='val_loss', verbose=1,
                                           save_best_only=save_best_only, mode='min',
                                           save_weights_only=False)]
@@ -252,7 +250,8 @@ def conv_block(inputs: Layer, use_batch_norm: bool = False, dropout_rate: float 
 
 def Unet_model(input_shape: Tuple[int] = (64, 64, 6), n_classes: int = 1,
                dropout_rate: float = 0.2, n_filters: int = 64, n_blocks: int = 4,
-               output_activation: str = 'sigmoid', lr: float = 10**-4, weights: str = None
+               output_activation: str = 'sigmoid', lr: float = 10**-4, weights: str = None,
+               equal_filters: bool = False
                ) -> Model:
     """Unet model.
 
@@ -272,6 +271,8 @@ def Unet_model(input_shape: Tuple[int] = (64, 64, 6), n_classes: int = 1,
     :type lr: float
     :param weights: Path to pretrained weights.
     :type weights: str
+    :param equal_filters: Flag for equal filters.
+    :type equal_filters: bool
     :rtype: Model
     """
     if weights is not None:
@@ -290,13 +291,15 @@ def Unet_model(input_shape: Tuple[int] = (64, 64, 6), n_classes: int = 1,
         encoder.append(x)
         x = MaxPooling2D((2, 2), strides=2)(x)
         x = Dropout(dropout_rate)(x)
-        n_filters *= 2
+        if not equal_filters:
+            n_filters *= 2
 
     x = conv_block(inputs=x, filters=n_filters, use_batch_norm=False, dropout_rate=0.0,
                    padding='same')
 
     for conv in reversed(encoder):
-        n_filters //= 2
+        if not equal_filters:
+            n_filters //= 2
         x = UpSampling2D()(x)
 
         x = concatenate([x, conv])
