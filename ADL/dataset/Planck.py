@@ -106,6 +106,15 @@ class Planck_Dataset:
                               " Continuing without augmentation.")
                 self.augmentation = None
 
+    def add_LFI(self, lfi_path: str) -> None:
+        """Add LFI channels.
+
+        :param lfi_path: Path to LFI data (the same way as HFI data).
+        :type lfi_path: str
+        :rtype: None
+        """
+        self.lfi_path = lfi_path
+
     def prepare(self) -> None:
         """Load data.
 
@@ -116,6 +125,10 @@ class Planck_Dataset:
         for i in self.pix2:
             self.data[i] = np.load(os.path.join(self.data_path, f"{i}.npy"))
             self.target[i] = np.load(os.path.join(self.target_path, f"{i}.npy"))
+
+            if hasattr(self, "lfi_path"):
+                self.data[i] = np.dstack([np.load(os.path.join(self.lfi_path, f"{i}.npy")),
+                                          self.data[i]])
         coords = pd.read_csv(os.path.join(self.target_path, "pc.csv"))
         coords = coords[np.in1d(coords["pix2"], self.pix2)]
         coords.index = np.arange(len(coords))
@@ -190,12 +203,18 @@ class Planck_Dataset:
             X, Y = self[idx]
         X = X[batch_idx]
         Y = Y[batch_idx]
-        f, ax = plt.subplots(3, 3, figsize=(10, 10))
-        for i in range(6):
-            ax[i // 3][i % 3].imshow(X[:, :, i])
-        ax[2][0].imshow(Y)
-        ax[2][0].set_xlabel("Ground truth")
+        if X.shape[-1] == 6:
+            rows, cols = 3, 3
+        elif X.shape[-1] == 9:
+            rows, cols = 4, 3
+        else:
+            raise(ValueError("X shape incorrect"))
+        f, ax = plt.subplots(rows, cols, figsize=(10, 10))
+        for i in range(X.shape[-1]):
+            ax[i // cols][i % cols].imshow(X[:, :, i])
+        ax[rows - 1][0].imshow(Y)
+        ax[rows - 1][0].set_xlabel("Ground truth")
 
         if pred is not None:
-            ax[2][1].imshow(pred[batch_idx])
-            ax[2][1].set_xlabel("Prediction")
+            ax[rows - 1][1].imshow(pred[batch_idx])
+            ax[rows - 1][1].set_xlabel("Prediction")
