@@ -70,8 +70,6 @@ class ADL_Unet:
     :type lr: float
     :param add_batch_norm: Flag for batch normalization.
     :type add_batch_norm: bool
-    :param dropout_rate: Dropout rate.
-    :type dropout_rate: float
     :param weights: Path to pretrained weights.
     :type weights: str
     :param lr_scheduler: LR preset or dictionary with correspondence epoch->lr.
@@ -87,17 +85,17 @@ class ADL_Unet:
 
     def __init__(self, model_path: str, input_shape: Tuple[int] = (64, 64, 6), n_filters: int = 8,
                  n_blocks: int = 5, n_classes: int = 1, lr: float = 1e-4,
-                 add_batch_norm: bool = False, dropout_rate: float = 0.2, weights: str = None,
+                 add_batch_norm: bool = False, weights: str = None,
                  lr_scheduler: Union[str, Dict[int, float]] = None, save_best_only: bool = False,
                  old_version: bool = False, old_upgrade: bool = False,
                  test_as_val: Planck_Dataset = None, model_prms: Dict = {}):
         """Initialize."""
         if old_version:
             self.model = Unet_model_old(input_shape, n_filters, n_blocks, n_classes, lr,
-                                        add_batch_norm, dropout_rate, weights, **model_prms)
+                                        add_batch_norm, weights, **model_prms)
         else:
-            self.model = Unet_model(input_shape, n_classes=n_classes, dropout_rate=dropout_rate,
-                                    n_filters=n_filters, n_blocks=n_blocks, **model_prms)
+            self.model = Unet_model(input_shape, n_classes=n_classes, n_filters=n_filters,
+                                    n_blocks=n_blocks, **model_prms)
         self.callbacks = [ModelCheckpoint(model_path, monitor='val_loss', verbose=1,
                                           save_best_only=save_best_only, mode='min',
                                           save_weights_only=False)]
