@@ -85,6 +85,8 @@ def show_history(ax: matplotlib.axes.Axes, path: str, metrics: List[str] = None,
         ep = df["epoch"][m]
         v.set_label(f"Maximum of {find_max} at {ep}")
 
+    ax.set_xlabel(path.split("/")[-2])
+
     ax.set_xticks(epochs[::5])
     ax.grid()
     ax.legend()
