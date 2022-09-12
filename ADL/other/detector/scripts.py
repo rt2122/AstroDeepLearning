@@ -4,7 +4,7 @@ import os
 
 
 def scan_Planck_Unet(model_path: str, data_path: str, out_path: str, step: str, device: str,
-                     verbose: bool = True) -> None:
+                     verbose: bool = True, lfi_path: str = None) -> None:
     """Full scan for Planck.
 
     :param model_path: Path to model.
@@ -19,6 +19,8 @@ def scan_Planck_Unet(model_path: str, data_path: str, out_path: str, step: str, 
     :type device: str
     :param verbose: Flag for tqdm.
     :type verbose: bool
+    :param lfi_path: Path to LFI channels if needed.
+    :type lfi_path: str
     :rtype: None
     """
     if device == "cpu":
@@ -30,7 +32,8 @@ def scan_Planck_Unet(model_path: str, data_path: str, out_path: str, step: str, 
         fast_skan_sky_Planck(data_path, out_path, model_path, verbose=verbose)
     else:
         print(f"Slow scan with step {step}")
-        scan_sky_Planck(data_path, out_path, model_path, int(step), verbose=verbose)
+        scan_sky_Planck(data_path, out_path, model_path, int(step), verbose=verbose,
+                        lfi_path=lfi_path)
 
 
 def extract_cat_Planck(in_path: str, out_path: str, thr: str, verbose: bool = True) -> None:

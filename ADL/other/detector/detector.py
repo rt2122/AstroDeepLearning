@@ -43,7 +43,8 @@ def connect_masks(masks: List[np.ndarray], pic_idx: List[Tuple[int]], patch_size
 
 
 def scan_sky_Planck(data_path: str, out_path: str, model_path: str, step: int = 64,
-                    patch_size: int = 64, nside: int = 2, verbose: bool = True) -> None:
+                    patch_size: int = 64, nside: int = 2, verbose: bool = True,
+                    lfi_path: str = None) -> None:
     """Scan of all 48 HEALPix pixels with chosen model.
 
     Each tile is divided into patches, and then small scans connected together.
@@ -62,6 +63,8 @@ def scan_sky_Planck(data_path: str, out_path: str, model_path: str, step: int = 
     :type nside: int
     :param verbose: Flag for tqdm.
     :type verbose: bool
+    :param lfi_path: Path to LFI channels if needed.
+    :type lfi_path: str
     :rtype: None
     """
     model = Unet_model(weights=model_path)
@@ -70,6 +73,8 @@ def scan_sky_Planck(data_path: str, out_path: str, model_path: str, step: int = 
         iter_pixels = tqdm(iter_pixels)
     for ipix in iter_pixels:
         big_pic = np.load(os.path.join(data_path, f'{ipix}.npy'))
+        if lfi_path:
+            big_pic = np.dstack([big_pic, np.load(os.path.join(lfi_path, f"{ipix}.npy"))])
         pics = []
         pic_idx = []
 
