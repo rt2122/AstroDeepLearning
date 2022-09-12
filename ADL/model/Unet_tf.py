@@ -58,20 +58,12 @@ class ADL_Unet:
     :param model_path: Template path for saving weights of model. Metrics & loss variables are
         available. Example: /path/to/models/Unet-val_loss{val_loss:.3f}-ep{epoch}.hdf5
     :type model_path: str
-    :param input_shape: Shape of input data. Default for Planck data.
-    :type input_shape: Tuple[int]
-    :param n_filters: Number of filters in block.
-    :type n_filters: int
-    :param n_blocks: Number of blocks.
-    :type n_blocks: int
     :param n_classes: Number of output layers.
     :type n_classes: int
     :param lr: Learning rate.LearningRateScheduler
     :type lr: float
     :param add_batch_norm: Flag for batch normalization.
     :type add_batch_norm: bool
-    :param weights: Path to pretrained weights.
-    :type weights: str
     :param lr_scheduler: LR preset or dictionary with correspondence epoch->lr.
         Example: {2: 10**-5, 20: 10**-8}
     :type lr_scheduler: Union[str, Dict[int, float]]
@@ -83,19 +75,17 @@ class ADL_Unet:
     :type test_as_val: Planck_Dataset
     """
 
-    def __init__(self, model_path: str, input_shape: Tuple[int] = (64, 64, 6), n_filters: int = 8,
-                 n_blocks: int = 5, n_classes: int = 1, lr: float = 1e-4,
-                 add_batch_norm: bool = False, weights: str = None,
+    def __init__(self, model_path: str, n_classes: int = 1, lr: float = 1e-4,
+                 add_batch_norm: bool = False,
                  lr_scheduler: Union[str, Dict[int, float]] = None, save_best_only: bool = False,
                  old_version: bool = False, old_upgrade: bool = False,
                  test_as_val: Planck_Dataset = None, model_prms: Dict = {}):
         """Initialize."""
         if old_version:
-            self.model = Unet_model_old(input_shape, n_filters, n_blocks, n_classes, lr,
-                                        add_batch_norm, weights, **model_prms)
+            self.model = Unet_model_old(n_classes=n_classes, lr=lr, add_batch_norm=add_batch_norm,
+                                        **model_prms)
         else:
-            self.model = Unet_model(input_shape, n_classes=n_classes, n_filters=n_filters,
-                                    n_blocks=n_blocks, **model_prms)
+            self.model = Unet_model(n_classes=n_classes, **model_prms)
         self.callbacks = [ModelCheckpoint(model_path, monitor='val_loss', verbose=1,
                                           save_best_only=save_best_only, mode='min',
                                           save_weights_only=False)]
@@ -313,7 +303,7 @@ def Unet_model(input_shape: Tuple[int] = (64, 64, 6), n_classes: int = 1,
 
 
 def Unet_model_old(input_shape: Tuple[int] = (64, 64, 6), n_filters: int = 8, n_blocks: int = 5,
-                   n_output_layers: int = 1, lr: float = 1e-4, add_batch_norm: bool = False,
+                   n_classes: int = 1, lr: float = 1e-4, add_batch_norm: bool = False,
                    dropout_prm: float = 0.2, weights: str = None, upgrade: bool = False) -> Model:
     """Create tensorflow model Unet (old version with big amount of parameters).
 
@@ -323,8 +313,8 @@ def Unet_model_old(input_shape: Tuple[int] = (64, 64, 6), n_filters: int = 8, n_
     :type n_filters: int
     :param n_blocks: Number of blocks.
     :type n_blocks: int
-    :param n_output_layers: Number of output layers.
-    :type n_output_layers: int
+    :param n_classes: Number of output layers.
+    :type n_classes: int
     :param lr: Learning rate.
     :type lr: float
     :param add_batch_norm: Flag for batch normalization.
@@ -374,7 +364,7 @@ def Unet_model_old(input_shape: Tuple[int] = (64, 64, 6), n_filters: int = 8, n_
 
         n_filters //= 2
 
-    cur = Conv2D(n_output_layers, kernel_size=3, padding='same', activation="sigmoid")(cur)
+    cur = Conv2D(n_classes, kernel_size=3, padding='same', activation="sigmoid")(cur)
 
     model = Model(inputs=inputs, outputs=cur)
     model.compile(optimizer=Adam(lr=lr), loss=binary_crossentropy, metrics=['accuracy', iou, dice])

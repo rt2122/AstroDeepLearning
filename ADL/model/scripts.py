@@ -7,11 +7,11 @@ from typing import Dict
 
 
 def train_Planck_Unet(model_name: str, data_path: str, target_path: str, model_path: str,
-                      pixels: str, pretrained: str, batch_size: str, epochs: str,
+                      pixels: str, batch_size: str, epochs: str,
                       device: str, continue_train: bool = False, lr_scheduler: str = None,
                       save_best_only: bool = False, test_as_val: bool = False,
-                      n_filters: int = 8, n_blocks: int = 5, old_version: bool = False,
-                      model_prms: Dict = {}) -> None:
+                      old_version: bool = False,
+                      model_prms: Dict = {}, add_LFI: str = None) -> None:
     """Full process of training.
 
     :param data_path: Path to data.
@@ -22,8 +22,6 @@ def train_Planck_Unet(model_name: str, data_path: str, target_path: str, model_p
     :type model_path: str
     :param pixels: Pixels preset.
     :type pixels: str
-    :param pretrained: Path to pretrained models.
-    :type pretrained: str
     :param batch_size: Size of batch.
     :type batch_size: str
     :param epochs: Number of epochs
@@ -38,10 +36,10 @@ def train_Planck_Unet(model_name: str, data_path: str, target_path: str, model_p
     :type save_best_only: bool
     :param test_as_val: Flag for adding test metrics.
     :type test_as_val: bool
-    :param n_filters: Number of filters in block.
-    :type n_filters: int
-    :param n_blocks: Number of blocks.
-    :type n_blocks: int
+    :param old_version: Use old version with convolution after concatenation.
+    :type old_version: bool
+    :param model_prms: Other parameters for model.
+    :type model_prms: Dict
     :rtype: None
     """
     if device == 'cpu':
@@ -56,24 +54,23 @@ def train_Planck_Unet(model_name: str, data_path: str, target_path: str, model_p
     if not os.path.isdir(model_path):
         os.mkdir(model_path)
 
-    weights = None
-    if pretrained != "":
-        weights = pretrained
     dataset_train = Planck_Dataset(data_path=data_path, target_path=target_path,
-                                   pix2=pix_dict["train"], batch_size=int(batch_size), shuffle=True)
+                                   pix2=pix_dict["train"], batch_size=int(batch_size), shuffle=True,
+                                   lfi_path=add_LFI)
     dataset_train.prepare()
     dataset_val = Planck_Dataset(data_path=data_path, target_path=target_path,
-                                 pix2=pix_dict["val"], batch_size=int(batch_size))
+                                 pix2=pix_dict["val"], batch_size=int(batch_size), lfi_path=add_LFI)
     dataset_val.prepare()
 
     dataset_test = None
     if test_as_val:
         dataset_test = Planck_Dataset(data_path=data_path, target_path=target_path,
-                                      pix2=pix_dict["test"], batch_size=int(batch_size))
+                                      pix2=pix_dict["test"], batch_size=int(batch_size),
+                                      lfi_path=add_LFI)
         dataset_test.prepare()
 
-    model = ADL_Unet(os.path.join(model_path, model_name + "_ep{epoch:03}.hdf5"), weights=weights,
+    model = ADL_Unet(os.path.join(model_path, model_name + "_ep{epoch:03}.hdf5"),
                      lr_scheduler=lr_scheduler, save_best_only=save_best_only,
-                     test_as_val=dataset_test, n_filters=n_filters, n_blocks=n_blocks,
+                     test_as_val=dataset_test,
                      old_version=old_version, model_prms=model_prms)
     model.train(dataset_train, dataset_val, int(epochs), continue_train=continue_train)

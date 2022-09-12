@@ -81,11 +81,13 @@ class Planck_Dataset:
     :param augmentation: Augmenter. Use "default" preset for default augmentation
         (horizontal and vertical flips + rotation by an angle multiple of 90 degrees).
     :type augmentation: Union[iaa.Augmenter, str]
+        :param lfi_path: Path to LFI data (the same way as HFI data).
+        :type lfi_path: str
     """
 
     def __init__(self, data_path: str, target_path: str, pix2: List[int], batch_size: int,
                  patch_size: int = 64, shuffle: bool = False,
-                 augmentation: Union[iaa.Augmenter, str] = "default"):
+                 augmentation: Union[iaa.Augmenter, str] = "default", lfi_path: str = None):
         """Initialize dataset."""
         self.data_path = data_path
         self.target_path = target_path
@@ -94,6 +96,7 @@ class Planck_Dataset:
         self.patch_size = patch_size
         self.shuffle = shuffle
         self.augmentation = augmentation
+        self.lfi_path = lfi_path
         if type(augmentation) == str:
             if augmentation == "default":
                 self.augmentation = iaa.SomeOf((0, 4), [iaa.Fliplr(0.5), iaa.Flipud(0.5),
@@ -106,15 +109,6 @@ class Planck_Dataset:
                               " Continuing without augmentation.")
                 self.augmentation = None
 
-    def add_LFI(self, lfi_path: str) -> None:
-        """Add LFI channels.
-
-        :param lfi_path: Path to LFI data (the same way as HFI data).
-        :type lfi_path: str
-        :rtype: None
-        """
-        self.lfi_path = lfi_path
-
     def prepare(self) -> None:
         """Load data.
 
@@ -126,7 +120,7 @@ class Planck_Dataset:
             self.data[i] = np.load(os.path.join(self.data_path, f"{i}.npy"))
             self.target[i] = np.load(os.path.join(self.target_path, f"{i}.npy"))
 
-            if hasattr(self, "lfi_path"):
+            if self.lfi_path:
                 self.data[i] = np.dstack([np.load(os.path.join(self.lfi_path, f"{i}.npy")),
                                           self.data[i]])
         coords = pd.read_csv(os.path.join(self.target_path, "pc.csv"))
