@@ -180,7 +180,8 @@ class Planck_Dataset:
             self._split_batches()
 
     def check_data(self, idx: int = 0, batch_idx: int = 0,
-                   X: np.ndarray = None, Y: np.ndarray = None, pred: np.ndarray = None) -> None:
+                   X: np.ndarray = None, Y: np.ndarray = None, pred: np.ndarray = None,
+                   name: str = "") -> None:
         """Fast check of data in dataset.
 
         :param idx: Index of batch.
@@ -212,3 +213,7 @@ class Planck_Dataset:
         if pred is not None:
             ax[rows - 1][1].imshow(pred[batch_idx])
             ax[rows - 1][1].set_xlabel("Prediction")
+            ax[rows - 1][2].imshow([[0]])
+            ax[rows - 1][2].set_xlabel(name)
+
+        f.tight_layout()
