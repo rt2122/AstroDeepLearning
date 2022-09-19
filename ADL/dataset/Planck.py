@@ -212,7 +212,7 @@ class Planck_Dataset:
 
         if pred is not None:
             ax[rows - 1][1].imshow(pred[batch_idx])
-            ax[rows - 1][1].set_xlabel("Prediction")
+            ax[rows - 1][1].set_xlabel("Prediction max {:.2f}".format(pred[batch_idx].max()))
             ax[rows - 1][2].imshow([[0]])
             ax[rows - 1][2].set_xlabel(name)
 
