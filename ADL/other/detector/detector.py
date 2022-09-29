@@ -96,7 +96,7 @@ def scan_sky_Planck(data_path: str, out_path: str, model_path: str, step: int = 
 
 
 def fast_skan_sky_Planck(data_path: str, out_path: str, model_path: str, nside: int = 2,
-                         verbose: bool = True) -> None:
+                         verbose: bool = True, lfi_path: str = None) -> None:
     """Fast scan of all 48 HEALPix pixels with chosen model.
 
     Each tile scanned at once.
@@ -111,12 +111,17 @@ def fast_skan_sky_Planck(data_path: str, out_path: str, model_path: str, nside: 
     :type nside: int
     :param verbose: Flag for tqdm.
     :type verbose: bool
+    :param lfi_path: Path to LFI channels if needed.
+    :type lfi_path: str
     :rtype: None
     """
     model = Unet_model(weights=model_path)
-    fast_model = Unet_model(input_shape=(1024, 1024, 6))
+    size = 9 if lfi_path else 6
+    fast_model = Unet_model(input_shape=(1024, 1024, size))
     fast_model.set_weights(model.get_weights())
     X = [np.load(os.path.join(data_path, f'{ipix}.npy')) for ipix in range(hp.nside2npix(2))]
+    if lfi_path:
+        X = [np.dstack([np.load(os.path.join(lfi_path, f'{ipix}.npy')), hfi_data]) for hfi_data in X]
     pred = fast_model.predict(np.array(X))
     iter_pixels = range(hp.nside2npix(nside))
     if verbose:
