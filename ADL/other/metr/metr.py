@@ -10,7 +10,8 @@ import ADL.preproc
 
 
 def match_det_to_true(det_cat: pd.DataFrame, det_cat_sc: SkyCoord, true_cat: pd.DataFrame,
-                      true_name: str, match_dist: float, spec_flag: bool = False) -> Dict:
+                      true_name: str, match_dist: float, spec_flag: bool = False,
+                      add_flags_to_true_cat: bool = False) -> Dict:
     """Match detected catalog to ground truth catalog & calculate recall.
 
     Fill 'found' column, if object was found. If spec_flag is True, fill found_[Special_cat]
@@ -50,6 +51,10 @@ def match_det_to_true(det_cat: pd.DataFrame, det_cat_sc: SkyCoord, true_cat: pd.
         n_true_matched = np.count_nonzero(det_cat['found_' + true_name])
         stats['precision_' + true_name] = n_true_matched / len(det_cat)
         stats['found_' + true_name] = n_true_matched
+
+    if add_flags_to_true_cat:
+        true_cat["found"] = False
+        true_cat.loc[matched, "found"] = True
     return stats
 
 

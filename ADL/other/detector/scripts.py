@@ -29,7 +29,7 @@ def scan_Planck_Unet(model_path: str, data_path: str, out_path: str, step: str, 
         os.mkdir(out_path)
     if step == "fast":
         print("Fast scan.")
-        fast_skan_sky_Planck(data_path, out_path, model_path, verbose=verbose)
+        fast_skan_sky_Planck(data_path, out_path, model_path, verbose=verbose, lfi_path=lfi_path)
     else:
         print(f"Slow scan with step {step}")
         scan_sky_Planck(data_path, out_path, model_path, int(step), verbose=verbose,
