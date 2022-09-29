@@ -121,7 +121,8 @@ def fast_skan_sky_Planck(data_path: str, out_path: str, model_path: str, nside: 
     fast_model.set_weights(model.get_weights())
     X = [np.load(os.path.join(data_path, f'{ipix}.npy')) for ipix in range(hp.nside2npix(2))]
     if lfi_path:
-        X = [np.dstack([np.load(os.path.join(lfi_path, f'{ipix}.npy')), hfi_data]) for hfi_data in X]
+        X = [np.dstack([np.load(os.path.join(lfi_path, f'{ipix}.npy')), hfi_data])
+             for ipix, hfi_data in enumerate(X)]
     pred = fast_model.predict(np.array(X))
     iter_pixels = range(hp.nside2npix(nside))
     if verbose:
