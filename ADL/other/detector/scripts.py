@@ -4,7 +4,7 @@ import os
 
 
 def scan_Planck_Unet(model_path: str, data_path: str, out_path: str, step: str, device: str,
-                     verbose: bool = True, lfi_path: str = None) -> None:
+                     verbose: bool = True, lfi_path: str = None, model_prms: dict = {}) -> None:
     """Full scan for Planck.
 
     :param model_path: Path to model.
@@ -21,6 +21,8 @@ def scan_Planck_Unet(model_path: str, data_path: str, out_path: str, step: str, 
     :type verbose: bool
     :param lfi_path: Path to LFI channels if needed.
     :type lfi_path: str
+    :param model_prms: Parameters of Unet model.
+    :type model_prms: dict
     :rtype: None
     """
     if device == "cpu":
@@ -29,7 +31,8 @@ def scan_Planck_Unet(model_path: str, data_path: str, out_path: str, step: str, 
         os.mkdir(out_path)
     if step == "fast":
         print("Fast scan.")
-        fast_skan_sky_Planck(data_path, out_path, model_path, verbose=verbose, lfi_path=lfi_path)
+        fast_skan_sky_Planck(data_path, out_path, model_path, verbose=verbose, lfi_path=lfi_path,
+                             model_prms=model_prms)
     else:
         print(f"Slow scan with step {step}")
         scan_sky_Planck(data_path, out_path, model_path, int(step), verbose=verbose,
