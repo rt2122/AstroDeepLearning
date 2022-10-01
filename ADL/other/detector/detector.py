@@ -116,7 +116,6 @@ def fast_skan_sky_Planck(data_path: str, out_path: str, model_path: str, nside: 
     :rtype: None
     """
     model = Unet_model(weights=model_path)
-    print(model_prms)
     fast_model = Unet_model(n_classes=1, **model_prms)
     fast_model.set_weights(model.get_weights())
     X = [np.load(os.path.join(data_path, f'{ipix}.npy')) for ipix in range(hp.nside2npix(2))]
