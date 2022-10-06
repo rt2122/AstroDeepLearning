@@ -74,7 +74,7 @@ def scan_sky_Planck(data_path: str, out_path: str, model_path: str, step: int = 
     for ipix in iter_pixels:
         big_pic = np.load(os.path.join(data_path, f'{ipix}.npy'))
         if lfi_path:
-            big_pic = np.dstack([big_pic, np.load(os.path.join(lfi_path, f"{ipix}.npy"))])
+            big_pic = np.dstack([np.load(os.path.join(lfi_path, f"{ipix}.npy")), big_pic])
         pics = []
         pic_idx = []
 
