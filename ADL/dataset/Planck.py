@@ -108,8 +108,9 @@ class Planck_Dataset:
                 warnings.warn("Wrong preset name for augmentation."
                               " Continuing without augmentation.")
                 self.augmentation = None
+        self._prepare()
 
-    def prepare(self) -> None:
+    def _prepare(self) -> None:
         """Load data.
 
         :rtype: None
@@ -207,7 +208,10 @@ class Planck_Dataset:
         f, ax = plt.subplots(rows, cols, figsize=(10, 10))
         for i in range(X.shape[-1]):
             ax[i // cols][i % cols].imshow(X[:, :, i])
-        ax[rows - 1][0].imshow(Y)
+        if (Y.shape[-1] == 1):
+            ax[rows - 1][0].imshow(Y)
+        else:
+            ax[rows - 1][0].imshow(255 * Y[:,:,[0,0,1]])
         ax[rows - 1][0].set_xlabel("Ground truth")
 
         if pred is not None:
