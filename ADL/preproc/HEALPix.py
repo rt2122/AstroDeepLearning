@@ -189,12 +189,13 @@ def src_on_batch(patch_line: Dict, f_matr: np.ndarray, cats: Dict[str, pd.DataFr
     return output
 
 
-def draw_masks_and_save(cats_path: str, outpath: str, o_nside: int = 2, nside: int = 2**11,
+def draw_masks_and_save(cluster_cats_path: str, outpath: str, o_nside: int = 2, nside: int = 2**11,
                         radius: float = 5/60) -> None:
     """Draw masks for training.
+    Specify "not_cluster" in catalog's name to put its objects on separate mask.
 
-    :param cats_path: Directory with catalogs.
-    :type cats_path: str
+    :param cluster_cats_path: Directory with catalogs.
+    :type cluster_cats_path: str
     :param outpath: Path to save masks.
     :type outpath: str
     :param o_nside: Original nside.
@@ -205,13 +206,25 @@ def draw_masks_and_save(cats_path: str, outpath: str, o_nside: int = 2, nside: i
     :type radius: float
     :rtype: None
     """
-    cats = ADL.other.metr.cats2dict(cats_path)
-    df = pd.concat(cats.values())
+    cats = ADL.other.metr.cats2dict(cluster_cats_path)
+    cluster_cats = {name: cat for name, cat in cats.items() if not "not_cluster" in name}
+    non_cluster_cats = {name: cat for name, cat in cats.items() if "not_cluster" in name}
+    clusters_cat = pd.concat(cluster_cats.values())
+    if len(non_cluster_cats) > 0:
+        non_cluster_cat = pd.concat(non_cluster_cats.values())
+    else:
+        non_cluster_cat = None
     for i in tqdm(range(hp.nside2npix(o_nside))):
         pix_matr = one_pixel_fragmentation(o_nside, i, nside)
-        pic = draw_circles(df["RA"], df["DEC"], radiuses=radius, nside=nside, pix_matr=pix_matr)
-        pic = pic.reshape(pic.shape + (1,))
-        np.save(os.path.join(outpath, f"{i}.npy"), pic)
+        mask = draw_circles(clusters_cat["RA"], clusters_cat["DEC"], radiuses=radius, nside=nside, pix_matr=pix_matr)
+        mask = mask.reshape(mask.shape + (1,))
+
+        if non_cluster_cat is not None:
+            non_cluster_mask = draw_circles(non_cluster_cat["RA"], non_cluster_cat["DEC"], radiuses=radius, nside=nside, pix_matr=pix_matr)
+            non_cluster_mask = non_cluster_mask.reshape(non_cluster_mask.shape + (1,))
+            mask = np.dstack([mask, non_cluster_mask])
+
+        np.save(os.path.join(outpath, f"{i}.npy"), mask)
 
 
 def calculate_n_src(patch_coords: pd.DataFrame, cluster_cat: pd.DataFrame, o_nside: int = 2,
