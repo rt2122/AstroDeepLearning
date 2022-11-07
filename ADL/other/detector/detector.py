@@ -195,6 +195,8 @@ def find_centers_on_mask(mask: np.ndarray, thr: float) -> pd.DataFrame:
     :type thr: float
     :rtype: pd.DataFrame
     """
+    if len(mask.shape) > 2:
+        mask = mask[:,:,0]
     mask_binary = np.copy(mask)
     mask_binary = np.array(mask_binary >= thr, dtype=np.float32)
     figures = divide_figures(mask_binary)
@@ -208,7 +210,7 @@ def find_centers_on_mask(mask: np.ndarray, thr: float) -> pd.DataFrame:
         prm["x"] = int(centroid[1])
         prm["y"] = int(centroid[0])
         prm["area"] = np.count_nonzero(figure)
-        rads = get_radius(figure[:, :, 0], centroid)
+        rads = get_radius(figure, centroid)
         prm.update(rads)
         prm["min_pred"] = np.partition(list(set(f.flatten())), 1)[1]
         prm["max_pred"] = f.max()
