@@ -230,14 +230,19 @@ def pix_extract_catalog(pred_path: str, ipix: str, thr: float = 0.1) -> pd.DataF
     :rtype: pd.DataFrame
     """
     pred = np.load(os.path.join(pred_path, f"{ipix}.npy"))
-    f_matr = one_pixel_fragmentation(2, ipix, 2**11)
-    df = find_centers_on_mask(pred, thr)
-    if len(pred) > 0:
-        pixels = f_matr[np.array(df["y"]), np.array(df["x"])]
-        ra, dec = pix2radec(pixels, nside=2**11)
-        df["RA"] = ra
-        df["DEC"] = dec
-    return df
+    tables = []
+    for i in range(pred.shape[-1]):
+        f_matr = one_pixel_fragmentation(2, ipix, 2**11)
+        df = find_centers_on_mask(pred, thr)
+        if len(pred) > 0:
+            pixels = f_matr[np.array(df["y"]), np.array(df["x"])]
+            ra, dec = pix2radec(pixels, nside=2**11)
+            df["RA"] = ra
+            df["DEC"] = dec
+        df["class"] = i
+        tables.append(df)
+    tables = pd.concat(tables, ignore_index=True)
+    return tables
 
 
 def sky_extract_catalog(pred_path: str, thr: float = 0.1, verbose: bool = True) -> pd.DataFrame:
