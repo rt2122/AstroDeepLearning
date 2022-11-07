@@ -233,7 +233,7 @@ def pix_extract_catalog(pred_path: str, ipix: str, thr: float = 0.1) -> pd.DataF
     tables = []
     for i in range(pred.shape[-1]):
         f_matr = one_pixel_fragmentation(2, ipix, 2**11)
-        df = find_centers_on_mask(pred, thr)
+        df = find_centers_on_mask(pred[:,:,i].reshape(pred.shape[:2] + (1,)), thr)
         if len(pred) > 0:
             pixels = f_matr[np.array(df["y"]), np.array(df["x"])]
             ra, dec = pix2radec(pixels, nside=2**11)
