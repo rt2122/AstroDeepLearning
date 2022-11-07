@@ -91,7 +91,7 @@ def scan_sky_Planck(data_path: str, out_path: str, model_path: str, step: int = 
                     pics.append(pic)
                     pic_idx.append((i, j))
         pred = model.predict(np.array(pics), verbose=0)
-        pred = connect_masks(pred, pic_idx)
+        pred = connect_masks(pred, pic_idx, big_shape=(1024, 1024) + (pred[-1],))
         np.save(os.path.join(out_path, f'{ipix}.npy'), pred)
 
 
