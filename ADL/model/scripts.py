@@ -57,17 +57,14 @@ def train_Planck_Unet(model_name: str, data_path: str, target_path: str, model_p
     dataset_train = Planck_Dataset(data_path=data_path, target_path=target_path,
                                    pix2=pix_dict["train"], batch_size=int(batch_size), shuffle=True,
                                    lfi_path=add_LFI)
-    dataset_train.prepare()
     dataset_val = Planck_Dataset(data_path=data_path, target_path=target_path,
                                  pix2=pix_dict["val"], batch_size=int(batch_size), lfi_path=add_LFI)
-    dataset_val.prepare()
 
     dataset_test = None
     if test_as_val:
         dataset_test = Planck_Dataset(data_path=data_path, target_path=target_path,
                                       pix2=pix_dict["test"], batch_size=int(batch_size),
                                       lfi_path=add_LFI)
-        dataset_test.prepare()
 
     model = ADL_Unet(os.path.join(model_path, model_name + "_ep{epoch:03}.hdf5"),
                      lr_scheduler=lr_scheduler, save_best_only=save_best_only,
