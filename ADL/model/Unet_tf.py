@@ -58,8 +58,6 @@ class ADL_Unet:
     :param model_path: Template path for saving weights of model. Metrics & loss variables are
         available. Example: /path/to/models/Unet-val_loss{val_loss:.3f}-ep{epoch}.hdf5
     :type model_path: str
-    :param n_classes: Number of output layers.
-    :type n_classes: int
     :param lr: Learning rate.LearningRateScheduler
     :type lr: float
     :param add_batch_norm: Flag for batch normalization.
@@ -75,17 +73,16 @@ class ADL_Unet:
     :type test_as_val: Planck_Dataset
     """
 
-    def __init__(self, model_path: str, n_classes: int = 1, lr: float = 1e-4,
-                 add_batch_norm: bool = False,
+    def __init__(self, model_path: str, lr: float = 1e-4, add_batch_norm: bool = False,
                  lr_scheduler: Union[str, Dict[int, float]] = None, save_best_only: bool = False,
                  old_version: bool = False, old_upgrade: bool = False,
                  test_as_val: Planck_Dataset = None, model_prms: Dict = {}):
         """Initialize."""
         if old_version:
-            self.model = Unet_model_old(n_classes=n_classes, lr=lr, add_batch_norm=add_batch_norm,
+            self.model = Unet_model_old(lr=lr, add_batch_norm=add_batch_norm,
                                         **model_prms)
         else:
-            self.model = Unet_model(n_classes=n_classes, **model_prms)
+            self.model = Unet_model(**model_prms)
         self.callbacks = [ModelCheckpoint(model_path, monitor='val_loss', verbose=1,
                                           save_best_only=save_best_only, mode='min',
                                           save_weights_only=False)]
