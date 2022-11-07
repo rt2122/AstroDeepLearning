@@ -231,9 +231,9 @@ def pix_extract_catalog(pred_path: str, ipix: str, thr: float = 0.1) -> pd.DataF
     """
     pred = np.load(os.path.join(pred_path, f"{ipix}.npy"))
     tables = []
+    f_matr = one_pixel_fragmentation(2, ipix, 2**11)
     for i in range(pred.shape[-1]):
-        f_matr = one_pixel_fragmentation(2, ipix, 2**11)
-        df = find_centers_on_mask(pred[:,:,i].reshape(pred.shape[:2] + (1,)), thr)
+        df = find_centers_on_mask(pred[:,:,i], thr)
         if len(pred) > 0:
             pixels = f_matr[np.array(df["y"]), np.array(df["x"])]
             ra, dec = pix2radec(pixels, nside=2**11)
