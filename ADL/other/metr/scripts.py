@@ -1,9 +1,11 @@
 """Scripts for metrics."""
 import numpy as np
 import pandas as pd
+import re
 from . import cats2dict, stats_with_rules
 from ADL.model import pixels
-from typing import List
+from typing import List, Dict
+from collections.abc import Callable
 
 
 pregen_thr = {"brcat": [5.05335105, 5.1069375,  5.1630591, 5.223298, 5.29437,
@@ -16,7 +18,7 @@ pregen_thr = {"brcat": [5.05335105, 5.1069375,  5.1630591, 5.223298, 5.29437,
 def calc_prec_recall_by_range_parameter(det_cat_path: str, true_cats_path: str, out_path: str,
                                         rules_preset: str, range_prm: str, range_preset: str,
                                         pixels_preset: str, n_bins: int = 20,
-                                        spec_precision: List[str] = ["eROSITA"]) -> None:
+                                        spec_precision: List[str] = ["eROSITA"], not_cluster: bool = False) -> None:
     """Create precision-recall .csv file for detected catalog.
 
     :param det_cat_path: Path to detected catalog.
@@ -71,6 +73,18 @@ def calc_prec_recall_by_range_parameter(det_cat_path: str, true_cats_path: str, 
         print("Pixels parameter is not recognized.")
         return
 
+    if not not_cluster:
+        get_stats_with_range(det_cat, true_cats, range_prm, thr_vals, rules, spec_precision, selected_pix, out_path)
+    else:
+        idx = out_path.rfind(".")
+        for iclass in range(det_cat["class"].max() + 1):
+            out_path_cur = out_path[:idx] + f"_class{iclass}" + out_path[idx:]
+            get_stats_with_range(det_cat, true_cats, range_prm, thr_vals, rules, spec_precision, selected_pix, out_path_cur)
+
+
+def get_stats_with_range(det_cat: pd.DataFrame, true_cats: Dict[str, pd.DataFrame],
+                         range_prm: str, thr_vals: List[float], rules: Dict[str, Callable],
+                         spec_precision: List[str], selected_pix: List[int], out_path: str):
     stats_df = []
     for thr in thr_vals:
         rules[range_prm] = lambda x: x > thr
