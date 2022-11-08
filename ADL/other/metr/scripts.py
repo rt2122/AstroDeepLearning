@@ -80,6 +80,7 @@ def calc_prec_recall_by_range_parameter(det_cat_path: str, true_cats_path: str, 
         for iclass in range(det_cat["class"].max() + 1):
             out_path_cur = out_path[:idx] + f"_class{iclass}" + out_path[idx:]
             det_cat_cur = det_cat[det_cat["class"] == iclass]
+            det_cat_cur.index = np.arange(len(det_cat_cur))
             get_stats_with_range(det_cat_cur, true_cats, range_prm, thr_vals, rules, spec_precision, selected_pix, out_path_cur)
 
 
