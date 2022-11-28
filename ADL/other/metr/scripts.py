@@ -18,7 +18,7 @@ pregen_thr = {"brcat": [5.05335105, 5.1069375,  5.1630591, 5.223298, 5.29437,
 def calc_prec_recall_by_range_parameter(det_cat_path: str, true_cats_path: str, out_path: str,
                                         rules_preset: str, range_prm: str, range_preset: str,
                                         pixels_preset: str, n_bins: int = 20,
-                                        spec_precision: List[str] = ["eROSITA"], not_cluster: bool = False) -> None:
+                                        spec_precision: List[str] = ["eROSITA"], radio_src: bool = False) -> None:
     """Create precision-recall .csv file for detected catalog.
 
     :param det_cat_path: Path to detected catalog.
@@ -73,7 +73,7 @@ def calc_prec_recall_by_range_parameter(det_cat_path: str, true_cats_path: str, 
         print("Pixels parameter is not recognized.")
         return
 
-    if not not_cluster:
+    if not radio_src:
         get_stats_with_range(det_cat, true_cats, range_prm, thr_vals, rules, spec_precision, selected_pix, out_path)
     else:
         idx = out_path.rfind(".")
