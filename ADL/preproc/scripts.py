@@ -20,9 +20,14 @@ def preproc_HFI_Planck(inpath: str, outpath: str) -> None:
     :type outpath: str
     :rtype: None
     """
-    files_by_ch = match_channels(inpath, ["100", "143", "217", "353", "545", "857"])
+    LFI = ["030", "044", "070"]
+    HFI = ["100", "143", "217", "353", "545", "857"]
+    files_by_ch = match_channels(inpath, LFI + HFI)
     data_by_ch = {ch: fits2df(os.path.join(inpath, file), "I_STOKES")
                   for ch, file in files_by_ch.items()}
+    data_by_ch["030"] = normalize_asym(data_by_ch["030"], p=(0.002, 0.05))
+    data_by_ch["044"] = normalize_asym(data_by_ch["044"])
+    data_by_ch["070"] = normalize_asym(data_by_ch["070"])
     data_by_ch["100"] = normalize_asym(data_by_ch["100"])
     data_by_ch["143"] = normalize_asym(data_by_ch["143"])
     data_by_ch["217"] = normalize_asym(data_by_ch["217"])
@@ -30,14 +35,26 @@ def preproc_HFI_Planck(inpath: str, outpath: str) -> None:
     data_by_ch["545"] = normalize_asym(data_by_ch["545"], p=(10**-5, 0.9))
     data_by_ch["857"] = normalize_asym(data_by_ch["857"], p=(10**-5, 0.9))
 
+    for ch in LFI:
+        data = data_by_ch[ch]
+        data_by_ch[ch] = hp.ud_grade(data, 2**11, order_in = "nest", order_out="nest")
+
+    os.mkdir(os.path.join(outpath, "hfi"))
+    os.mkdir(os.path.join(outpath, "lfi"))
+    os.mkdir(os.path.join(outpath, "healpix_orig"))
+
+    for ch in LFI + HFI:
+        np.save(os.path.join(outpath, "healpix_orig/{}.npy".format(ch)), data_by_ch[ch])
+
     for ipix in tqdm(range(hp.nside2npix(2))):
         pix_matr = one_pixel_fragmentation(2, ipix, 2**11)
-        img = np.zeros(pix_matr.shape + (6,), dtype=np.float64)
+        img = np.zeros(pix_matr.shape + (9,), dtype=np.float64)
         for i in range(pix_matr.shape[0]):
-            for ch_idx, ch in enumerate(data_by_ch):
+            for ch_idx, ch in enumerate(LFI + HFI):
                 data = data_by_ch[ch]
                 img[i, :, ch_idx] = data[pix_matr[i]]
-        np.save(os.path.join(outpath, '{}.npy'.format(ipix)), img)
+        np.save(os.path.join(outpath, "lfi", '{}.npy'.format(ipix)), img[:,:,:3])
+        np.save(os.path.join(outpath, "hfi", '{}.npy'.format(ipix)), img[:,:,3:])
     return
 
 
