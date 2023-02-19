@@ -314,8 +314,8 @@ def generate_all_patches(cats_path: str, o_nside: int = 2, nside: int = 2**11,
             for y in range(0, 1024 - patch_size):
                 patch_pic = pic[x:x+patch_size, y:y+patch_size]
                 if patch_pic.any():
-                    xs.append(x)
-                    ys.append(y)
+                    xs.append(x - patch_size / 2)
+                    ys.append(y - patch_size / 2)
 
         all_idx["x"].extend(xs)
         all_idx["y"].extend(ys)
@@ -326,7 +326,8 @@ def generate_all_patches(cats_path: str, o_nside: int = 2, nside: int = 2**11,
 
 
 def generate_patch_coords(cats_path: str, n_patches: int = None, cats_subset: List[str] = None,
-                          fit_pixels: Dict[str, List[int]] = None, density_cat_path: str = None
+                          fit_pixels: Dict[str, List[int]] = None, density_cat_path: str = None,
+                          patch_size: int = 64
                           ) -> pd.DataFrame:
     """Create list of dots from which patches can be generated.
 
@@ -345,7 +346,7 @@ def generate_patch_coords(cats_path: str, n_patches: int = None, cats_subset: Li
     :type density_cat_path: str
     :rtype: pd.DataFrame
     """
-    all_idx = generate_all_patches(cats_path, cats_subset=cats_subset)
+    all_idx = generate_all_patches(cats_path, cats_subset=cats_subset, patch_size=patch_size)
     if n_patches is not None and len(all_idx) > n_patches:
         if fit_pixels is None:
             step = len(all_idx) // n_patches

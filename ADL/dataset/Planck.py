@@ -150,13 +150,13 @@ class Planck_Dataset:
         :rtype: Tuple[np.ndarray]
         """
         batch = self.batches[idx]
-        size = self.patch_size
-
+        hsize = self.patch_size / 2
+        
         X = []
         Y = []
         for x, y, pix in zip(batch["x"], batch["y"], batch["pix2"]):
-            X.append(self.data[pix][x:x+size, y:y+size, :])
-            Y.append(self.target[pix][x:x+size, y:y+size, :])
+            X.append(self.data[pix][x - hsize : x + hsize, y - hsize : y + hsize, :])
+            Y.append(self.target[pix][x - hsize : x + hsize, y - hsize : y + hsize, :])
 
         X = np.array(X)
         Y = np.array(Y)
