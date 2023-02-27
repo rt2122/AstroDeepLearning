@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import pandas as pd
 import os
-from typing import List
+from typing import List, Tuple
 from matplotlib import pyplot as plt
 
 
@@ -30,29 +30,28 @@ class Planck_Regression_Dataset(torch.utils.data.Dataset):
         self.pix2 = pix2
         self.patch_size = patch_size
         self._prepare()
-    
-    def _prepare(self):
+
+    def _prepare(self) -> None:
         """Prepare dataset."""
         self.data = {}
         for i in self.pix2:
             self.data[i] = np.load(os.path.join(self.data_path, f"{i}.npy"))
 
         target = pd.read_csv(self.target_path)
-        
+
         if not set(["x", "y", "pix2", self.reg_prm]).issubset(list(target)):
             raise(ValueError("Dataset table should have x, y, pix2 & reg_prm columns."))
-            
+
         # Remove objects that are too close to grid and won't fit
         target = target[np.in1d(target["pix2"], self.pix2)]
         target = target[target["x"] >= self.patch_size]
         target = target[target["y"] >= self.patch_size]
         target = target[target["x"] < 2**11 - self.patch_size]
         target = target[target["y"] < 2**11 - self.patch_size]
-        
+
         self.target = target
-        
-    
-    def __getitem__(self, idx: int):
+
+    def __getitem__(self, idx: int) -> Tuple[np.array, float]:
         """Get item.
 
         :param idx:
@@ -62,17 +61,15 @@ class Planck_Regression_Dataset(torch.utils.data.Dataset):
         x, y = line["x"], line["y"]
         size = self.patch_size // 2
         image = self.data[line["pix2"]]
-        
         image = image[x - size: x + size, y - size: y + size]
-        print(x, y)
-        
+
         return image, line[self.reg_prm]
-    
-    def __len__(self):
+
+    def __len__(self) -> int:
         """__len__."""
         return len(self.target)
-    
-    def check_data(self, idx: int = 0):
+
+    def check_data(self, idx: int = 0) -> None:
         """check_data.
 
         :param idx:
