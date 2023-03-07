@@ -44,10 +44,12 @@ class Planck_Regression_Dataset(torch.utils.data.Dataset):
 
         # Remove objects that are too close to grid and won't fit
         target = target[np.in1d(target["pix2"], self.pix2)]
-        target = target[target["x"] >= self.patch_size]
-        target = target[target["y"] >= self.patch_size]
-        target = target[target["x"] < 2**11 - self.patch_size]
-        target = target[target["y"] < 2**11 - self.patch_size]
+        hsize = self.patch_size // 2
+        target = target[target["x"] >= hsize]
+        target = target[target["y"] >= hsize]
+        max_size = self.data[self.pix2[0]].shape[0]
+        target = target[target["x"] < max_size - hsize]
+        target = target[target["y"] < max_size - hsize]
 
         self.target = target
 

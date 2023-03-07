@@ -112,13 +112,3 @@ class MDN_Regression(nn.Module):
         mu = np.vstack(mu)
         sigma = np.vstack(sigma)
         return true, pi, mu, sigma
-
-
-def loss_f(y, pi, mu, sigma):
-    if not isinstance(y, torch.Tensor):
-        y, pi, mu, sigma = torch.Tensor(y), torch.Tensor(pi), torch.Tensor(mu), torch.Tensor(sigma)
-    comp_prob = - torch.log(sigma) - 0.5 * np.log(2 * np.pi) - \
-        0.5 * torch.pow((y.view(-1, 1) - mu) / sigma, 2)
-    mix = torch.log(pi)
-    res = torch.logsumexp(comp_prob + mix, dim=-1)
-    return torch.mean(-res)
