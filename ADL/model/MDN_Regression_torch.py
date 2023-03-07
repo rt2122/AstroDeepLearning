@@ -20,7 +20,7 @@ class ConvBlock(nn.Module):
         return self.relu(self.bn(self.conv(x)))
 
 
-class MLP_GMM(nn.Module):
+class MDN_Regression(nn.Module):
     def __init__(self, sizes, p, drop_out=0.0):
         super().__init__()
         self.sizes = sizes
