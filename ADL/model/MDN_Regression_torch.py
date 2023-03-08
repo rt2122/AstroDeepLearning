@@ -5,6 +5,8 @@ import numpy as np
 from typing import Dict
 from matplotlib import pyplot as plt
 from IPython.display import clear_output
+import pickle
+import os
 
 
 class ConvBlock(nn.Module):
@@ -109,17 +111,24 @@ class MDN_Regression(nn.Module):
 
 class DeepEnsemble_MDN:
     def __init__(
-        self, BaseModel, base_model_args: Dict, n_models: int, device: str = "cpu"
+        self,
+        BaseModel,
+        base_model_args: Dict,
+        n_models: int,
+        device: str = "cpu",
+        model_save_path: str = None,
     ):
         self.BaseModel = BaseModel
         self.base_model_args = base_model_args
         self.n_models = n_models
         self.device = device
         self.models = []
+        self.model_save_path = model_save_path
         for i in range(n_models):
             self.models.append(BaseModel(**base_model_args).to(self.device))
 
-    def loss(self, y, pi, mu, sigma):
+    @staticmethod
+    def loss(y, pi, mu, sigma):
         if not isinstance(y, torch.Tensor):
             y, pi, mu, sigma = (
                 torch.Tensor(y),
@@ -200,7 +209,6 @@ class DeepEnsemble_MDN:
         fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(12, 12))
 
         colors = ["blue", "orange", "red", "green", "black", "purple"]
-        # DISPLAY_LAG = 30
         FIRST_IDX = 0  # max(1, epoch+1-DISPLAY_LAG)
         ticks = list(range(1, epoch + 2))[FIRST_IDX:]
 
@@ -218,7 +226,7 @@ class DeepEnsemble_MDN:
 
         y_min -= 0.3 * np.abs(y_min)
         y_max += 0.3 * np.abs(y_max)
-        ax[0].set_ylim(y_min, min(100, y_max))
+        ax[0].set_ylim(y_min, min(1, y_max))
         ax[0].set_xticks(ticks)
         ax[0].set_xlabel("Epochs", fontsize=12)
         ax[0].set_ylabel("Loss", fontsize=12)
@@ -287,6 +295,10 @@ class DeepEnsemble_MDN:
 
             if verbose and epoch > 0:
                 self.show_verbose(epoch)
+            if self.model_save_path is not None:
+                self.save_pickle(
+                    os.path.join(self.model_save_path, "ens_ep{}.pkl".format(epoch))
+                )
 
     def predict(self, dataloader):
         epoch_pi, epoch_mu, epoch_sigma = [], [], []
@@ -307,3 +319,13 @@ class DeepEnsemble_MDN:
         )
 
         return epoch_pi, epoch_mu, epoch_sigma, mode, sigma
+
+    def save_pickle(self, file: str):
+        with open(file, "wb") as f:
+            pickle.dump(self, f)
+
+    @classmethod
+    def load_pickle(cls, file: str):
+        with open(file, "rb") as f:
+            obj = pickle.load(f)
+        return obj
