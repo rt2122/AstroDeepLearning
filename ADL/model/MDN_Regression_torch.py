@@ -159,6 +159,7 @@ class DeepEnsemble_MDN:
                 self.optimizers[i] if train_mode else None,
                 self.schedulers[i] if train_mode else None,
                 self.loss if train_mode else None,
+                device=self.device
             )
             epoch_pi.append(pi)
             epoch_mu.append(mu)
