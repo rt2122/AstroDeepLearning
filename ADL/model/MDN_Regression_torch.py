@@ -183,7 +183,7 @@ class DeepEnsemble_MDN:
                 self.metrics[metric](epoch_true, mode)
             )
 
-    def show_loss(self, ax: matplotlib.Axes, epoch: int, first_idx: int = 0, show_min: str = None):
+    def show_loss(self, ax: matplotlib.axes, epoch: int, first_idx: int = 0, show_min: str = None):
         ticks = list(range(1, epoch + 2))[first_idx:]
 
         y_min = np.inf
@@ -210,7 +210,7 @@ class DeepEnsemble_MDN:
         ax.legend(loc=0, fontsize=12)
         ax.grid("on")
 
-    def show_metrics(self, ax: matplotlib.Axes, epoch: int, first_idx: int = 0):
+    def show_metrics(self, ax: matplotlib.axes, epoch: int, first_idx: int = 0):
         ticks = list(range(1, epoch + 2))[first_idx:]
         colors = ["blue", "orange", "red", "green", "black", "purple"]
 
