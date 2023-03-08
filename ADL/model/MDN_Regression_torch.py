@@ -125,6 +125,8 @@ class DeepEnsemble_MDN:
         self.device = device
         self.models = []
         self.model_save_path = model_save_path
+        self.epochs = 0
+        self.epoch = 0
         for i in range(n_models):
             self.models.append(BaseModel(**base_model_args).to(self.device))
 
@@ -203,7 +205,7 @@ class DeepEnsemble_MDN:
 
         y_min -= 0.3 * np.abs(y_min)
         y_max += 0.3 * np.abs(y_max)
-        ax.set_ylim(y_min, min(1, y_max))
+        ax.set_ylim(y_min, y_max)
         ax.set_xticks(ticks)
         ax.set_xlabel("Epochs", fontsize=12)
         ax.set_ylabel("Loss", fontsize=12)
@@ -238,7 +240,8 @@ class DeepEnsemble_MDN:
         ax.legend(loc=0, fontsize=12)
         ax.grid("on")
 
-    def show_verbose(self, epoch: int):
+    def show_verbose(self):
+        epoch = self.epoch
         clear_output(True)
         print(f"Device: {self.device}")
         print("=" * 40)
@@ -281,7 +284,7 @@ class DeepEnsemble_MDN:
         verbose: bool = True,
         metrics=[],
     ):
-        self.epochs = epochs
+        self.epochs += epochs
         optimizers = []
         schedulers = []
         for model in self.models:
@@ -297,16 +300,16 @@ class DeepEnsemble_MDN:
             self.metric_vals[mode_name] = {metric: [] for metric in metrics}
             self.loss_vals[mode_name] = []
 
-        for epoch in range(epochs):
+        for self.epoch in range(self.epoch, self.epochs):
             self.run_models_one_epoch(dataloader, train_mode=True)
 
             self.run_models_one_epoch(test_dataloader, train_mode=False)
 
-            if verbose and epoch > 0:
-                self.show_verbose(epoch)
+            if verbose and self.epoch > 0:
+                self.show_verbose()
             if self.model_save_path is not None:
                 self.save_pickle(
-                    os.path.join(self.model_save_path, "ens_ep{}.pkl".format(epoch))
+                    os.path.join(self.model_save_path, "ens_ep{}.pkl".format(self.epoch))
                 )
 
     def predict(self, dataloader):
