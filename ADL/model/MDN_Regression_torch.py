@@ -3,6 +3,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 import numpy as np
 from typing import Dict
+import matplotlib
 from matplotlib import pyplot as plt
 from IPython.display import clear_output
 import pickle
@@ -182,6 +183,61 @@ class DeepEnsemble_MDN:
                 self.metrics[metric](epoch_true, mode)
             )
 
+    def show_loss(self, ax: matplotlib.Axes, epoch: int, first_idx: int = 0, show_min: str = None):
+        ticks = list(range(1, epoch + 2))[first_idx:]
+
+        y_min = np.inf
+        y_max = -np.inf
+        for mode_name, c in zip(["train", "test"], ["blue", "orange"]):
+            losses_min = list(map(np.min, self.loss_vals[mode_name]))[first_idx:]
+            losses_mean = list(map(np.mean, self.loss_vals[mode_name]))[first_idx:]
+            losses_max = list(map(np.max, self.loss_vals[mode_name]))[first_idx:]
+            ax.plot(ticks, losses_min, c=c, linestyle="--")
+            ax.plot(ticks, losses_mean, c=c, label=mode_name)
+            ax.plot(ticks, losses_max, c=c, linestyle="--")
+            y_min = min(y_min, *losses_min)
+            y_max = min(y_max, *losses_max)
+            if show_min == mode_name:
+                global_min_loss = np.argmin(losses_min)
+                ax.axvline(global_min_loss, label=f"Loss min on {mode_name}")
+
+        y_min -= 0.3 * np.abs(y_min)
+        y_max += 0.3 * np.abs(y_max)
+        ax.set_ylim(y_min, min(1, y_max))
+        ax.set_xticks(ticks)
+        ax.set_xlabel("Epochs", fontsize=12)
+        ax.set_ylabel("Loss", fontsize=12)
+        ax.legend(loc=0, fontsize=12)
+        ax.grid("on")
+
+    def show_metrics(self, ax: matplotlib.Axes, epoch: int, first_idx: int = 0):
+        ticks = list(range(1, epoch + 2))[first_idx:]
+        colors = ["blue", "orange", "red", "green", "black", "purple"]
+
+        for mode_name, linestyle in zip(["train", "test"], ["-", "--"]):
+            for i, metric in enumerate(self.metrics):
+                ax.plot(
+                    ticks,
+                    self.metric_vals[mode_name][metric][first_idx:],
+                    c=colors[i],
+                    label=f"{mode_name} {metric}",
+                    linestyle=linestyle,
+                )
+
+        t = []
+        for mode_name in ["train", "test"]:
+            for metric in self.metrics:
+                t += self.metric_vals[mode_name][metric][first_idx:]
+        y_min, y_max = min(t), max(t)
+        y_min -= 0.3 * np.abs(y_min)
+        y_max += 0.3 * np.abs(y_max)
+        ax.set_ylim(y_min, y_max)
+        ax.set_xticks(ticks)
+        ax.set_xlabel("Epochs", fontsize=12)
+        ax.set_ylabel("Metric", fontsize=12)
+        ax.legend(loc=0, fontsize=12)
+        ax.grid("on")
+
     def show_verbose(self, epoch: int):
         clear_output(True)
         print(f"Device: {self.device}")
@@ -208,56 +264,8 @@ class DeepEnsemble_MDN:
 
         # GRAPHICS
         fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(12, 12))
-
-        colors = ["blue", "orange", "red", "green", "black", "purple"]
-        FIRST_IDX = 0  # max(1, epoch+1-DISPLAY_LAG)
-        ticks = list(range(1, epoch + 2))[FIRST_IDX:]
-
-        y_min = np.inf
-        y_max = -np.inf
-        for mode_name, c in zip(["train", "test"], ["blue", "orange"]):
-            losses_min = list(map(np.min, self.loss_vals[mode_name]))[FIRST_IDX:]
-            losses_mean = list(map(np.mean, self.loss_vals[mode_name]))[FIRST_IDX:]
-            losses_max = list(map(np.max, self.loss_vals[mode_name]))[FIRST_IDX:]
-            ax[0].plot(ticks, losses_min, c=c, linestyle="--")
-            ax[0].plot(ticks, losses_mean, c=c, label=mode_name)
-            ax[0].plot(ticks, losses_max, c=c, linestyle="--")
-            y_min = min(y_min, *losses_min)
-            y_max = min(y_max, *losses_max)
-
-        y_min -= 0.3 * np.abs(y_min)
-        y_max += 0.3 * np.abs(y_max)
-        ax[0].set_ylim(y_min, min(1, y_max))
-        ax[0].set_xticks(ticks)
-        ax[0].set_xlabel("Epochs", fontsize=12)
-        ax[0].set_ylabel("Loss", fontsize=12)
-        ax[0].legend(loc=0, fontsize=12)
-        ax[0].grid("on")
-
-        for mode_name, linestyle in zip(["train", "test"], ["-", "--"]):
-            for i, metric in enumerate(self.metrics):
-                ax[1].plot(
-                    ticks,
-                    self.metric_vals[mode_name][metric][FIRST_IDX:],
-                    c=colors[i],
-                    label=f"{mode_name} {metric}",
-                    linestyle=linestyle,
-                )
-
-        # Test
-        t = []
-        for mode_name in ["train", "test"]:
-            for metric in self.metrics:
-                t += self.metric_vals[mode_name][metric][FIRST_IDX:]
-        y_min, y_max = min(t), max(t)
-        y_min -= 0.3 * np.abs(y_min)
-        y_max += 0.3 * np.abs(y_max)
-        ax[1].set_ylim(y_min, y_max)
-        ax[1].set_xticks(ticks)
-        ax[1].set_xlabel("Epochs", fontsize=12)
-        ax[1].set_ylabel("Metric", fontsize=12)
-        ax[1].legend(loc=0, fontsize=12)
-        ax[1].grid("on")
+        self.show_loss(ax[0], epoch)
+        self.show_metrics(ax[1], epoch)
 
         plt.show()
 
