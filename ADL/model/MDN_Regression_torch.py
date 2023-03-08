@@ -198,7 +198,7 @@ class DeepEnsemble_MDN:
             ax.plot(ticks, losses_mean, c=c, label=mode_name)
             ax.plot(ticks, losses_max, c=c, linestyle="--")
             y_min = min(y_min, *losses_min)
-            y_max = min(y_max, *losses_max)
+            y_max = max(y_max, *losses_max)
             if show_min == mode_name:
                 global_min_loss = np.argmin(losses_min)
                 ax.axvline(global_min_loss, label=f"Loss min on {mode_name}")
