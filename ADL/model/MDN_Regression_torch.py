@@ -11,7 +11,17 @@ import os
 
 
 class ConvBlock(nn.Module):
+    """ConvBlock."""
+
     def __init__(self, in_size, out_size, kernel_size=3, padding=1, stride=1):
+        """__init__.
+
+        :param in_size:
+        :param out_size:
+        :param kernel_size:
+        :param padding:
+        :param stride:
+        """
         super(ConvBlock, self).__init__()
         self.conv = nn.Conv2d(
             in_size, out_size, kernel_size, padding=padding, stride=stride
@@ -20,11 +30,23 @@ class ConvBlock(nn.Module):
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
+        """forward.
+
+        :param x:
+        """
         return self.relu(self.bn(self.conv(x)))
 
 
 class MDN_Regression(nn.Module):
+    """MDN_Regression."""
+
     def __init__(self, sizes, p, drop_out=0.0):
+        """__init__.
+
+        :param sizes:
+        :param p:
+        :param drop_out:
+        """
         super().__init__()
         self.sizes = sizes
         n_channels = 6
@@ -67,10 +89,20 @@ class MDN_Regression(nn.Module):
         self.n_gauss = self.sizes[-1]
 
     def init_weights(self, m):
+        """init_weights.
+
+        :param m:
+        """
         if isinstance(m, nn.Linear):
             torch.nn.init.kaiming_uniform_(m.weight, nonlinearity="relu")
 
     def forward(self, x, train_mode: bool = True):
+        """forward.
+
+        :param x:
+        :param train_mode:
+        :type train_mode: bool
+        """
         self.train(train_mode)
         x = self.layers(x)
         pi = nn.functional.gumbel_softmax(self.pi(x), tau=1, dim=-1) + 1e-10
@@ -81,6 +113,14 @@ class MDN_Regression(nn.Module):
     def run_epoch(
         self, dataloader, optimizer=None, scheduler=None, loss_f=None, device="cpu"
     ):
+        """run_epoch.
+
+        :param dataloader:
+        :param optimizer:
+        :param scheduler:
+        :param loss_f:
+        :param device:
+        """
         train_mode = (optimizer is not None) and (loss_f is not None)
         true, pi, mu, sigma = [], [], [], []
 
@@ -111,6 +151,8 @@ class MDN_Regression(nn.Module):
 
 
 class DeepEnsemble_MDN:
+    """DeepEnsemble_MDN."""
+
     def __init__(
         self,
         BaseModel,
@@ -119,6 +161,18 @@ class DeepEnsemble_MDN:
         device: str = "cpu",
         model_save_path: str = None,
     ):
+        """__init__.
+
+        :param BaseModel:
+        :param base_model_args:
+        :type base_model_args: Dict
+        :param n_models:
+        :type n_models: int
+        :param device:
+        :type device: str
+        :param model_save_path:
+        :type model_save_path: str
+        """
         self.BaseModel = BaseModel
         self.base_model_args = base_model_args
         self.n_models = n_models
@@ -132,6 +186,13 @@ class DeepEnsemble_MDN:
 
     @staticmethod
     def loss(y, pi, mu, sigma):
+        """loss.
+
+        :param y:
+        :param pi:
+        :param mu:
+        :param sigma:
+        """
         if not isinstance(y, torch.Tensor):
             y, pi, mu, sigma = (
                 torch.Tensor(y),
@@ -148,7 +209,18 @@ class DeepEnsemble_MDN:
         res = torch.logsumexp(comp_prob + mix, dim=-1)
         return torch.mean(-res)
 
-    def run_models_one_epoch(self, dataloader: DataLoader, train_mode: bool = True):
+    def run_models_one_epoch(
+        self, dataloader: DataLoader, train_mode: bool = True, mode_name: str = "train"
+    ):
+        """run_models_one_epoch.
+
+        :param dataloader:
+        :type dataloader: DataLoader
+        :param train_mode:
+        :type train_mode: bool
+        :param mode_name:
+        :type mode_name: str
+        """
         epoch_pi, epoch_mu, epoch_sigma = [], [], []
         epoch_losses = []
         for i, model in enumerate(self.models):
@@ -162,7 +234,7 @@ class DeepEnsemble_MDN:
                 self.optimizers[i] if train_mode else None,
                 self.schedulers[i] if train_mode else None,
                 self.loss if train_mode else None,
-                device=self.device
+                device=self.device,
             )
             epoch_pi.append(pi)
             epoch_mu.append(mu)
@@ -178,19 +250,38 @@ class DeepEnsemble_MDN:
             (epoch_mu - mu.reshape(-1, 1)) ** 2 * epoch_pi, axis=1
         )
 
-        mode_name = "train" if train_mode else "test"
         self.loss_vals[mode_name].append(epoch_losses)
         for metric in self.metrics:
             self.metric_vals[mode_name][metric].append(
                 self.metrics[metric](epoch_true, mode)
             )
 
-    def show_loss(self, ax: matplotlib.axes, epoch: int, first_idx: int = 0, show_min: str = None):
+    def show_loss(
+        self,
+        ax: matplotlib.axes,
+        epoch: int,
+        first_idx: int = 0,
+        show_min: str = None,
+        lower_ylim: int = 1,
+    ):
+        """show_loss.
+
+        :param ax:
+        :type ax: matplotlib.axes
+        :param epoch:
+        :type epoch: int
+        :param first_idx:
+        :type first_idx: int
+        :param show_min:
+        :type show_min: str
+        :param lower_ylim:
+        :type lower_ylim: int
+        """
         ticks = list(range(1, epoch + 2))[first_idx:]
 
         y_min = np.inf
         y_max = -np.inf
-        for mode_name, c in zip(["train", "test"], ["blue", "orange"]):
+        for mode_name, c in zip(self.mode_names, ["blue", "orange", "purple"]):
             losses_min = list(map(np.min, self.loss_vals[mode_name]))[first_idx:]
             losses_mean = list(map(np.mean, self.loss_vals[mode_name]))[first_idx:]
             losses_max = list(map(np.max, self.loss_vals[mode_name]))[first_idx:]
@@ -201,22 +292,37 @@ class DeepEnsemble_MDN:
             y_max = max(y_max, *losses_max)
             if show_min == mode_name:
                 global_min_loss = np.argmin(losses_min)
-                ax.axvline(global_min_loss, label=f"Loss min on {mode_name}")
+                ax.axvline(
+                    global_min_loss,
+                    label=f"Loss min on {mode_name} on epoch {global_min_loss}",
+                )
 
         y_min -= 0.3 * np.abs(y_min)
+        y_min = min(y_min, 0)
         y_max += 0.3 * np.abs(y_max)
+        if lower_ylim is not None:
+            y_max = np.max(self.loss_vals["train"][min(lower_ylim, epoch)][0])
         ax.set_ylim(y_min, y_max)
-        ax.set_xticks(ticks)
+        ax.set_xticks(ticks[::10])
         ax.set_xlabel("Epochs", fontsize=12)
         ax.set_ylabel("Loss", fontsize=12)
         ax.legend(loc=0, fontsize=12)
         ax.grid("on")
 
     def show_metrics(self, ax: matplotlib.axes, epoch: int, first_idx: int = 0):
+        """show_metrics.
+
+        :param ax:
+        :type ax: matplotlib.axes
+        :param epoch:
+        :type epoch: int
+        :param first_idx:
+        :type first_idx: int
+        """
         ticks = list(range(1, epoch + 2))[first_idx:]
         colors = ["blue", "orange", "red", "green", "black", "purple"]
 
-        for mode_name, linestyle in zip(["train", "test"], ["-", "--"]):
+        for mode_name, linestyle in zip(self.mode_names, ["-", "--", ":"]):
             for i, metric in enumerate(self.metrics):
                 ax.plot(
                     ticks,
@@ -227,7 +333,7 @@ class DeepEnsemble_MDN:
                 )
 
         t = []
-        for mode_name in ["train", "test"]:
+        for mode_name in self.mode_names:
             for metric in self.metrics:
                 t += self.metric_vals[mode_name][metric][first_idx:]
         y_min, y_max = min(t), max(t)
@@ -241,6 +347,7 @@ class DeepEnsemble_MDN:
         ax.grid("on")
 
     def show_verbose(self):
+        """show_verbose."""
         epoch = self.epoch
         clear_output(True)
         print(f"Device: {self.device}")
@@ -250,7 +357,7 @@ class DeepEnsemble_MDN:
         print(f"Learning rate: {round(cur_lr[0], 8)}")
         print("-" * 40)
 
-        for mode_name in ["train", "test"]:
+        for mode_name in self.mode_names:
             print(
                 f"{mode_name} losses: {[round(l, 5) for l in self.loss_vals[mode_name][-1]]}"
             )
@@ -275,7 +382,8 @@ class DeepEnsemble_MDN:
     def fit(
         self,
         dataloader: DataLoader,
-        test_dataloader: DataLoader,
+        val_dataloader: DataLoader,
+        test_dataloader: DataLoader = None,
         epochs: int = 10,
         optimizer=torch.optim.Adam,
         optimizer_args={"lr": 0.0005, "weight_decay": 0.0001},
@@ -284,6 +392,29 @@ class DeepEnsemble_MDN:
         verbose: bool = True,
         metrics=[],
     ):
+        """fit.
+
+        :param dataloader:
+        :type dataloader: DataLoader
+        :param val_dataloader:
+        :type val_dataloader: DataLoader
+        :param test_dataloader:
+        :type test_dataloader: DataLoader
+        :param epochs:
+        :type epochs: int
+        :param optimizer:
+        :param optimizer_args:
+        :param scheduler:
+        :param scheduler_args:
+        :param verbose:
+        :type verbose: bool
+        :param metrics:
+        """
+        self.mode_names = ["train"]
+        if val_dataloader is not None:
+            self.mode_names.append("val")
+        if test_dataloader is not None:
+            self.mode_names.append("test")
         self.epochs += epochs
         optimizers = []
         schedulers = []
@@ -294,25 +425,40 @@ class DeepEnsemble_MDN:
         self.schedulers = schedulers
         self.metrics = metrics
 
-        self.metric_vals = {}
-        self.loss_vals = {}
-        for mode_name in ["train", "test"]:
-            self.metric_vals[mode_name] = {metric: [] for metric in metrics}
-            self.loss_vals[mode_name] = []
+        if not hasattr(self, "metric_vals") or not hasattr(self, "loss_vals"):
+            self.metric_vals = {}
+            self.loss_vals = {}
+            for mode_name in self.mode_names:
+                self.metric_vals[mode_name] = {metric: [] for metric in metrics}
+                self.loss_vals[mode_name] = []
 
         for self.epoch in range(self.epoch, self.epochs):
-            self.run_models_one_epoch(dataloader, train_mode=True)
+            self.run_models_one_epoch(dataloader, train_mode=True, mode_name="train")
 
-            self.run_models_one_epoch(test_dataloader, train_mode=False)
+            if val_dataloader is not None:
+                self.run_models_one_epoch(
+                    val_dataloader, train_mode=False, mode_name="val"
+                )
+            if test_dataloader is not None:
+                self.run_models_one_epoch(
+                    test_dataloader, train_mode=False, mode_name="test"
+                )
 
             if verbose and self.epoch > 0:
                 self.show_verbose()
             if self.model_save_path is not None:
                 self.save_pickle(
-                    os.path.join(self.model_save_path, "ens_ep{}.pkl".format(self.epoch))
+                    os.path.join(
+                        self.model_save_path, "ens_ep{}.pkl".format(self.epoch)
+                    )
                 )
 
-    def predict(self, dataloader):
+    def predict(self, dataloader: DataLoader):
+        """predict.
+
+        :param dataloader:
+        :type dataloader: DataLoader
+        """
         epoch_pi, epoch_mu, epoch_sigma = [], [], []
 
         for i, model in enumerate(self.models):
@@ -333,11 +479,21 @@ class DeepEnsemble_MDN:
         return epoch_pi, epoch_mu, epoch_sigma, mode, sigma
 
     def save_pickle(self, file: str):
+        """save_pickle.
+
+        :param file:
+        :type file: str
+        """
         with open(file, "wb") as f:
             pickle.dump(self, f)
 
     @classmethod
     def load_pickle(cls, file: str):
+        """load_pickle.
+
+        :param file:
+        :type file: str
+        """
         with open(file, "rb") as f:
             obj = pickle.load(f)
         return obj
