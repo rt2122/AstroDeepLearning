@@ -4,6 +4,7 @@ import pandas as pd
 import os
 from typing import List
 from matplotlib import pyplot as plt
+import matplotlib
 
 
 class Planck_Regression_Dataset(torch.utils.data.Dataset):
@@ -88,3 +89,15 @@ class Planck_Regression_Dataset(torch.utils.data.Dataset):
         ax[0][0].set_title("{} = {:.2f}".format(self.reg_prm, y))
 
         f.tight_layout()
+
+    def target_prm_histogram(self, ax: matplotlib.axes, n_bins: int = 20):
+        """Show histogram for target prm.
+
+        :param ax: Where to show.
+        :type ax: matplotlib.axes
+        :param n_bins: Number of bins.
+        :type n_bins: int
+        """
+        ax.hist(self.target[self.reg_prm], bins=n_bins)
+        ax.set_xlabel(self.reg_prm)
+        ax.grid()
