@@ -285,9 +285,9 @@ class DeepEnsemble_MDN:
             losses_min = list(map(np.min, self.loss_vals[mode_name]))[first_idx:]
             losses_mean = list(map(np.mean, self.loss_vals[mode_name]))[first_idx:]
             losses_max = list(map(np.max, self.loss_vals[mode_name]))[first_idx:]
-            ax.plot(ticks, losses_min, c=c, linestyle="--")
+            ax.plot(ticks, losses_min, c=c, linestyle="--", alpha=0.5)
             ax.plot(ticks, losses_mean, c=c, label=mode_name)
-            ax.plot(ticks, losses_max, c=c, linestyle="--")
+            ax.plot(ticks, losses_max, c=c, linestyle="--", alpha=0.5)
             y_min = min(y_min, *losses_min)
             y_max = max(y_max, *losses_max)
             if show_min == mode_name:
@@ -340,7 +340,7 @@ class DeepEnsemble_MDN:
         y_min -= 0.3 * np.abs(y_min)
         y_max += 0.3 * np.abs(y_max)
         ax.set_ylim(y_min, y_max)
-        ax.set_xticks(ticks)
+        ax.set_xticks(ticks[::10])
         ax.set_xlabel("Epochs", fontsize=12)
         ax.set_ylabel("Metric", fontsize=12)
         ax.legend(loc=0, fontsize=12)
