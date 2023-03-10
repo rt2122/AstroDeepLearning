@@ -40,7 +40,7 @@ class ConvBlock(nn.Module):
 class MDN_Regression(nn.Module):
     """MDN_Regression."""
 
-    def __init__(self, sizes, p, drop_out=0.0):
+    def __init__(self, sizes, p, drop_out: float = 0.0):
         """__init__.
 
         :param sizes:
@@ -160,6 +160,10 @@ class DeepEnsemble_MDN:
         n_models: int,
         device: str = "cpu",
         model_save_path: str = None,
+        optimizer=torch.optim.Adam,
+        optimizer_args={"lr": 0.0005, "weight_decay": 0.0001},
+        scheduler=torch.optim.lr_scheduler.ExponentialLR,
+        scheduler_args={"gamma": 0.9},
     ):
         """__init__.
 
@@ -183,6 +187,16 @@ class DeepEnsemble_MDN:
         self.epoch = 0
         for i in range(n_models):
             self.models.append(BaseModel(**base_model_args).to(self.device))
+        optimizers = []
+        schedulers = []
+        for model in self.models:
+            optimizers.append(optimizer(model.parameters(), **optimizer_args))
+            schedulers.append(scheduler(optimizers[-1], **scheduler_args))
+        self.optimizers = optimizers
+        self.schedulers = schedulers
+
+        self.metric_vals = {}
+        self.loss_vals = {}
 
     @staticmethod
     def loss(y, pi, mu, sigma):
@@ -281,7 +295,7 @@ class DeepEnsemble_MDN:
 
         y_min = np.inf
         y_max = -np.inf
-        for mode_name, c in zip(self.mode_names, ["blue", "orange", "purple"]):
+        for mode_name, c in zip(self.dataloaders, ["blue", "orange", "purple"]):
             losses_min = list(map(np.min, self.loss_vals[mode_name]))[first_idx:]
             losses_mean = list(map(np.mean, self.loss_vals[mode_name]))[first_idx:]
             losses_max = list(map(np.max, self.loss_vals[mode_name]))[first_idx:]
@@ -322,7 +336,7 @@ class DeepEnsemble_MDN:
         ticks = list(range(1, epoch + 2))[first_idx:]
         colors = ["blue", "orange", "red", "green", "black", "purple"]
 
-        for mode_name, linestyle in zip(self.mode_names, ["-", "--", ":"]):
+        for mode_name, linestyle in zip(self.dataloaders, ["-", "--", ":"]):
             for i, metric in enumerate(self.metrics):
                 ax.plot(
                     ticks,
@@ -333,7 +347,7 @@ class DeepEnsemble_MDN:
                 )
 
         t = []
-        for mode_name in self.mode_names:
+        for mode_name in self.dataloaders:
             for metric in self.metrics:
                 t += self.metric_vals[mode_name][metric][first_idx:]
         y_min, y_max = min(t), max(t)
@@ -357,7 +371,7 @@ class DeepEnsemble_MDN:
         print(f"Learning rate: {round(cur_lr[0], 8)}")
         print("-" * 40)
 
-        for mode_name in self.mode_names:
+        for mode_name in self.dataloaders:
             print(
                 f"{mode_name} losses: {[round(l, 5) for l in self.loss_vals[mode_name][-1]]}"
             )
@@ -381,14 +395,8 @@ class DeepEnsemble_MDN:
 
     def fit(
         self,
-        dataloader: DataLoader,
-        val_dataloader: DataLoader,
-        test_dataloader: DataLoader = None,
+        dataloaders: Dict[str, DataLoader],
         epochs: int = 10,
-        optimizer=torch.optim.Adam,
-        optimizer_args={"lr": 0.0005, "weight_decay": 0.0001},
-        scheduler=torch.optim.lr_scheduler.ExponentialLR,
-        scheduler_args={"gamma": 0.9},
         verbose: bool = True,
         metrics=[],
     ):
@@ -410,38 +418,22 @@ class DeepEnsemble_MDN:
         :type verbose: bool
         :param metrics:
         """
-        self.mode_names = ["train"]
-        if val_dataloader is not None:
-            self.mode_names.append("val")
-        if test_dataloader is not None:
-            self.mode_names.append("test")
+        if "train" not in dataloaders:
+            raise (ValueError("Need train dataloader."))
+        self.dataloaders = dataloaders
         self.epochs += epochs
-        optimizers = []
-        schedulers = []
-        for model in self.models:
-            optimizers.append(optimizer(model.parameters(), **optimizer_args))
-            schedulers.append(scheduler(optimizers[-1], **scheduler_args))
-        self.optimizers = optimizers
-        self.schedulers = schedulers
         self.metrics = metrics
 
-        if not hasattr(self, "metric_vals") or not hasattr(self, "loss_vals"):
-            self.metric_vals = {}
-            self.loss_vals = {}
-            for mode_name in self.mode_names:
+        for mode_name in dataloaders:
+            if mode_name not in self.metric_vals:
                 self.metric_vals[mode_name] = {metric: [] for metric in metrics}
+            if mode_name not in self.loss_vals:
                 self.loss_vals[mode_name] = []
 
         for self.epoch in range(self.epoch, self.epochs):
-            self.run_models_one_epoch(dataloader, train_mode=True, mode_name="train")
-
-            if val_dataloader is not None:
+            for mode_name, dataloader in dataloaders.items():
                 self.run_models_one_epoch(
-                    val_dataloader, train_mode=False, mode_name="val"
-                )
-            if test_dataloader is not None:
-                self.run_models_one_epoch(
-                    test_dataloader, train_mode=False, mode_name="test"
+                    dataloader, train_mode="train" == mode_name, mode_name=mode_name
                 )
 
             if verbose and self.epoch > 0:

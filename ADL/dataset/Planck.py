@@ -21,7 +21,7 @@ def split_dataframe(df: pd.DataFrame, batch_size: int) -> List[pd.DataFrame]:
     batches = []
     n_batches = len(df) // batch_size + 1
     for i in range(n_batches):
-        batches.append(df[i*batch_size: (i + 1) * batch_size])
+        batches.append(df[i * batch_size : (i + 1) * batch_size])
     return batches
 
 
@@ -85,9 +85,17 @@ class Planck_Dataset:
         :type lfi_path: str
     """
 
-    def __init__(self, data_path: str, target_path: str, pix2: List[int], batch_size: int,
-                 patch_size: int = 64, shuffle: bool = False,
-                 augmentation: Union[iaa.Augmenter, str] = "default", lfi_path: str = None):
+    def __init__(
+        self,
+        data_path: str,
+        target_path: str,
+        pix2: List[int],
+        batch_size: int,
+        patch_size: int = 64,
+        shuffle: bool = False,
+        augmentation: Union[iaa.Augmenter, str] = "default",
+        lfi_path: str = None,
+    ):
         """Initialize dataset."""
         self.data_path = data_path
         self.target_path = target_path
@@ -99,14 +107,25 @@ class Planck_Dataset:
         self.lfi_path = lfi_path
         if type(augmentation) == str:
             if augmentation == "default":
-                self.augmentation = iaa.SomeOf((0, 4), [iaa.Fliplr(0.5), iaa.Flipud(0.5),
-                                                        iaa.OneOf([iaa.Affine(rotate=90),
-                                                                   iaa.Affine(rotate=180),
-                                                                   iaa.Affine(rotate=270)])
-                                                        ])
+                self.augmentation = iaa.SomeOf(
+                    (0, 4),
+                    [
+                        iaa.Fliplr(0.5),
+                        iaa.Flipud(0.5),
+                        iaa.OneOf(
+                            [
+                                iaa.Affine(rotate=90),
+                                iaa.Affine(rotate=180),
+                                iaa.Affine(rotate=270),
+                            ]
+                        ),
+                    ],
+                )
             else:
-                warnings.warn("Wrong preset name for augmentation."
-                              " Continuing without augmentation.")
+                warnings.warn(
+                    "Wrong preset name for augmentation."
+                    " Continuing without augmentation."
+                )
                 self.augmentation = None
         self._prepare()
 
@@ -122,8 +141,9 @@ class Planck_Dataset:
             self.target[i] = np.load(os.path.join(self.target_path, f"{i}.npy"))
 
             if self.lfi_path:
-                self.data[i] = np.dstack([np.load(os.path.join(self.lfi_path, f"{i}.npy")),
-                                          self.data[i]])
+                self.data[i] = np.dstack(
+                    [np.load(os.path.join(self.lfi_path, f"{i}.npy")), self.data[i]]
+                )
         coords = pd.read_csv(os.path.join(self.target_path, "pc.csv"))
         coords = coords[np.in1d(coords["pix2"], self.pix2)]
         coords.index = np.arange(len(coords))
@@ -151,7 +171,7 @@ class Planck_Dataset:
         """
         batch = self.batches[idx]
         hsize = self.patch_size / 2
-        
+
         X = []
         Y = []
         for x, y, pix in zip(batch["x"], batch["y"], batch["pix2"]):
@@ -180,9 +200,15 @@ class Planck_Dataset:
         if self.shuffle:
             self._split_batches()
 
-    def check_data(self, idx: int = 0, batch_idx: int = 0,
-                   X: np.ndarray = None, Y: np.ndarray = None, pred: np.ndarray = None,
-                   name: str = "") -> None:
+    def check_data(
+        self,
+        idx: int = 0,
+        batch_idx: int = 0,
+        X: np.ndarray = None,
+        Y: np.ndarray = None,
+        pred: np.ndarray = None,
+        name: str = "",
+    ) -> None:
         """Fast check of data in dataset.
 
         :param idx: Index of batch.
@@ -204,19 +230,21 @@ class Planck_Dataset:
         elif X.shape[-1] == 9:
             rows, cols = 4, 3
         else:
-            raise(ValueError("X shape incorrect"))
+            raise (ValueError("X shape incorrect"))
         f, ax = plt.subplots(rows, cols, figsize=(10, 10))
         for i in range(X.shape[-1]):
             ax[i // cols][i % cols].imshow(X[:, :, i])
-        if (Y.shape[-1] == 1):
+        if Y.shape[-1] == 1:
             ax[rows - 1][0].imshow(Y)
         else:
-            ax[rows - 1][0].imshow(255 * Y[:,:,[0,0,1]])
+            ax[rows - 1][0].imshow(255 * Y[:, :, [0, 0, 1]])
         ax[rows - 1][0].set_xlabel("Ground truth")
 
         if pred is not None:
             ax[rows - 1][1].imshow(pred[batch_idx])
-            ax[rows - 1][1].set_xlabel("Prediction max {:.2f}".format(pred[batch_idx].max()))
+            ax[rows - 1][1].set_xlabel(
+                "Prediction max {:.2f}".format(pred[batch_idx].max())
+            )
             ax[rows - 1][2].imshow([[0]])
             ax[rows - 1][2].set_xlabel(name)
 
