@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 import numpy as np
-from typing import Dict
+from typing import Dict, List
 import matplotlib
 from matplotlib import pyplot as plt
 from IPython.display import clear_output
@@ -40,7 +40,12 @@ class ConvBlock(nn.Module):
 class MDN_Regression(nn.Module):
     """MDN_Regression."""
 
-    def __init__(self, sizes, p, drop_out: float = 0.0):
+    def __init__(
+        self,
+        sizes: List[int] = [512, 256, 128, 1],
+        p: float = 0.0,
+        drop_out: float = 0.0,
+    ):
         """__init__.
 
         :param sizes:
@@ -122,7 +127,7 @@ class MDN_Regression(nn.Module):
         :param device:
         """
         train_mode = (optimizer is not None) and (loss_f is not None)
-        true, pi, mu, sigma = [], [], [], []
+        gt, pi, mu, sigma = [], [], [], []
 
         for i, data in enumerate(dataloader):
             img, y = data
@@ -136,18 +141,18 @@ class MDN_Regression(nn.Module):
                 loss = loss_f(y, batch_pi, batch_mu, batch_sigma)
                 loss.backward()
                 optimizer.step()
-            true.append(y.cpu().detach().numpy())
+            gt.append(y.cpu().detach().numpy())
             pi.append(batch_pi.cpu().detach().numpy())
             mu.append(batch_mu.cpu().detach().numpy())
             sigma.append(batch_sigma.cpu().detach().numpy())
 
         if train_mode:
             scheduler.step()
-        true = np.concatenate(true)
+        gt = np.concatenate(gt)
         pi = np.vstack(pi)
         mu = np.vstack(mu)
         sigma = np.vstack(sigma)
-        return true, pi, mu, sigma
+        return gt, pi, mu, sigma
 
 
 class DeepEnsemble_MDN:
@@ -155,9 +160,9 @@ class DeepEnsemble_MDN:
 
     def __init__(
         self,
-        BaseModel,
-        base_model_args: Dict,
-        n_models: int,
+        BaseModel=MDN_Regression,
+        base_model_args: Dict = {},
+        n_models: int = 1,
         device: str = "cpu",
         model_save_path: str = None,
         optimizer=torch.optim.Adam,
@@ -451,15 +456,17 @@ class DeepEnsemble_MDN:
         :param dataloader:
         :type dataloader: DataLoader
         """
-        epoch_pi, epoch_mu, epoch_sigma = [], [], []
+        epoch_gt, epoch_pi, epoch_mu, epoch_sigma = [], [], [], []
 
         for i, model in enumerate(self.models):
-            epoch_true, pi, mu, sigma = model.run_epoch(dataloader)
+            gt, pi, mu, sigma = model.run_epoch(dataloader)
+            epoch_gt.append(gt)
             epoch_pi.append(pi)
             epoch_mu.append(mu)
             epoch_sigma.append(sigma)
         epoch_pi = np.concatenate(epoch_pi, axis=1) / len(self.models)
         epoch_mu = np.concatenate(epoch_mu, axis=1)
+        epoch_gt = np.concatenate(epoch_gt, axis=0)
         epoch_sigma = np.concatenate(epoch_sigma, axis=1)
         epoch_p = (1 / (epoch_sigma * np.sqrt(2 * np.pi))) * epoch_pi
         mode = epoch_mu[np.arange(epoch_mu.shape[0]), np.argmax(epoch_p, axis=1)]
@@ -468,7 +475,7 @@ class DeepEnsemble_MDN:
             (epoch_mu - mu.reshape(-1, 1)) ** 2 * epoch_pi, axis=1
         )
 
-        return epoch_pi, epoch_mu, epoch_sigma, mode, sigma
+        return epoch_gt, epoch_pi, epoch_mu, epoch_sigma, mode, sigma
 
     def save_pickle(self, file: str):
         """save_pickle.
@@ -489,3 +496,58 @@ class DeepEnsemble_MDN:
         with open(file, "rb") as f:
             obj = pickle.load(f)
         return obj
+
+    @classmethod
+    def calc_err(
+        cls, mu: np.ndarray, sigma: np.ndarray, mode: np.ndarray, n_models: int
+    ):
+        sigma_a2 = 0
+        sigma_e2 = 0
+        for n in range(n_models):
+            epsilon = np.random.normal(0, sigma[:, n])
+            f_ = mu[:, n]
+            y = mu[:, n] + epsilon
+            var = np.sum(epsilon)
+            sigma_a2 += sigma[:, n] ** 2
+            sigma_e2 += (f_ - 1 / 5 * np.sum(mu, axis=1)) ** 2
+        sigma_2 = 1 / 5 * np.sum(sigma_a2) + sigma_e2
+        return [np.sqrt(1 / 5 * sigma_a2), np.sqrt(1 / 5 * sigma_e2)]
+
+    def compare_M500(self, ax: matplotlib.axes, dataloader: DataLoader):
+        epoch_gt, epoch_pi, epoch_mu, epoch_sigma, mode, sigma = self.predict(
+            dataloader
+        )
+
+        err_y = self.calc_err(epoch_mu, epoch_sigma, mode, self.n_models)
+
+        plt.errorbar(
+            epoch_gt,
+            mode,
+            yerr=np.sqrt(err_y[0] ** 2 + err_y[1] ** 2),
+            xerr=0,
+            fmt="ro",
+            alpha=0.2,
+        )
+        plt.scatter(x=epoch_gt, y=mode, alpha=0.8)
+
+        ax.legend()
+        ax.set_xlabel("$M_{500}\cdot10^{14} M_\odot$ $from$ $PSZ2$")
+        ax.set_ylabel("$Predicted$ $M_{500}\cdot10^{14} M_\odot$")
+        ax.plot(
+            np.linspace(0, 13, 100),
+            np.linspace(0, 13, 100),
+            "--",
+            color="gray",
+            alpha=0.8,
+        )
+        ax.set_ylim(-0.5, 14)
+        ax.set_xlim(0, 14)
+        ax.set_xticks(np.arange(15))
+        ax.grid(which="minor", linestyle=":")
+        ax.grid(which="major", linestyle="--")
+
+
+def sigma_nmad(true, preds):
+    diff = preds - true
+    m = np.median(diff)
+    return 1.48 * np.median(np.abs((diff - m) / (1 + true)))
