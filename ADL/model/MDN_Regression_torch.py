@@ -456,17 +456,15 @@ class DeepEnsemble_MDN:
         :param dataloader:
         :type dataloader: DataLoader
         """
-        epoch_gt, epoch_pi, epoch_mu, epoch_sigma = [], [], [], []
+        epoch_pi, epoch_mu, epoch_sigma = [], [], []
 
         for i, model in enumerate(self.models):
-            gt, pi, mu, sigma = model.run_epoch(dataloader)
-            epoch_gt.append(gt)
+            gt, pi, mu, sigma = model.run_epoch(dataloader, device=self.device)
             epoch_pi.append(pi)
             epoch_mu.append(mu)
             epoch_sigma.append(sigma)
         epoch_pi = np.concatenate(epoch_pi, axis=1) / len(self.models)
         epoch_mu = np.concatenate(epoch_mu, axis=1)
-        epoch_gt = np.concatenate(epoch_gt, axis=0)
         epoch_sigma = np.concatenate(epoch_sigma, axis=1)
         epoch_p = (1 / (epoch_sigma * np.sqrt(2 * np.pi))) * epoch_pi
         mode = epoch_mu[np.arange(epoch_mu.shape[0]), np.argmax(epoch_p, axis=1)]
@@ -475,7 +473,7 @@ class DeepEnsemble_MDN:
             (epoch_mu - mu.reshape(-1, 1)) ** 2 * epoch_pi, axis=1
         )
 
-        return epoch_gt, epoch_pi, epoch_mu, epoch_sigma, mode, sigma
+        return gt, epoch_pi, epoch_mu, epoch_sigma, mode, sigma
 
     def save_pickle(self, file: str):
         """save_pickle.
@@ -513,14 +511,14 @@ class DeepEnsemble_MDN:
         sigma_2 = 1 / 5 * np.sum(sigma_a2) + sigma_e2
         return [np.sqrt(1 / 5 * sigma_a2), np.sqrt(1 / 5 * sigma_e2)]
 
-    def compare_M500(self, ax: matplotlib.axes, dataloader: DataLoader):
+    def compare_M500(self, ax: matplotlib.axes, dataloader: DataLoader, label: str = ""):
         epoch_gt, epoch_pi, epoch_mu, epoch_sigma, mode, sigma = self.predict(
             dataloader
         )
 
         err_y = self.calc_err(epoch_mu, epoch_sigma, mode, self.n_models)
 
-        plt.errorbar(
+        ax.errorbar(
             epoch_gt,
             mode,
             yerr=np.sqrt(err_y[0] ** 2 + err_y[1] ** 2),
@@ -528,7 +526,8 @@ class DeepEnsemble_MDN:
             fmt="ro",
             alpha=0.2,
         )
-        plt.scatter(x=epoch_gt, y=mode, alpha=0.8)
+        s = ax.scatter(x=epoch_gt, y=mode, alpha=0.8)
+        s.set_label(label)
 
         ax.legend()
         ax.set_xlabel("$M_{500}\cdot10^{14} M_\odot$ $from$ $PSZ2$")
