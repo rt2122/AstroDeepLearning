@@ -1,8 +1,9 @@
 import torch
+from torch.utils.data import Sampler
 import numpy as np
 import pandas as pd
 import os
-from typing import List
+from typing import List, Iterator
 from matplotlib import pyplot as plt
 import matplotlib
 from torchvision.transforms import Compose, RandomHorizontalFlip, RandomVerticalFlip
@@ -82,6 +83,7 @@ class Planck_Regression_Dataset(torch.utils.data.Dataset):
         max_size = self.data[self.pix2[0]].shape[0]
         target = target[target["x"] < max_size - hsize]
         target = target[target["y"] < max_size - hsize]
+        target.index = np.arange(len(target))
 
         self.target = target
 
@@ -133,3 +135,42 @@ class Planck_Regression_Dataset(torch.utils.data.Dataset):
         ax.hist(self.target[self.reg_prm], bins=n_bins)
         ax.set_xlabel(self.reg_prm)
         ax.grid()
+
+
+class StratifiedSampler(Sampler[int]):
+    def __init__(
+        self,
+        data_source: Planck_Regression_Dataset,
+        n_bins: int = 5,
+        batch_size: int = 128,
+        n_batches: int = 30,
+    ):
+        self.data_source = data_source
+        self.n_bins = n_bins
+        target_df = data_source.target
+        target_df["index"] = target_df.index
+        prm = data_source.reg_prm
+        target_vals, bins = pd.cut(
+            target_df[prm],
+            target_df[prm].quantile(np.linspace(0, 1, n_bins + 1)),
+            retbins=True,
+        )
+        self.bins = bins
+        self.grouped_df = target_df.groupby(target_vals)
+        self.group_size = len(target_df)
+        self.batch_size = batch_size
+        self.n_batches = n_batches
+
+    def __iter__(self) -> Iterator[int]:
+        sample = []
+        for i in range(self.n_batches):
+            sample.append(
+                self.grouped_df.apply(
+                    lambda x: x.sample(n=self.batch_size // self.n_bins, replace=True)
+                )
+            )
+        sample = pd.concat(sample)
+        return iter(sample["index"])
+
+    def __len__(self):
+        return self.group_size * self.n_bins
