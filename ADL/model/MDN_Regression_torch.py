@@ -202,6 +202,8 @@ class DeepEnsemble_MDN:
 
         self.metric_vals = {}
         self.loss_vals = {}
+        self.loss_min = np.inf
+        self.loss_max = -np.inf
 
     @staticmethod
     def loss(y, pi, mu, sigma):
@@ -298,8 +300,8 @@ class DeepEnsemble_MDN:
         """
         ticks = list(range(1, epoch + 2))[first_idx:]
 
-        y_min = np.inf
-        y_max = -np.inf
+        y_min = self.loss_min
+        y_max = self.loss_max
         for mode_name, c in zip(self.dataloaders, ["blue", "orange", "purple"]):
             losses_min = list(map(np.min, self.loss_vals[mode_name]))[first_idx:]
             losses_mean = list(map(np.mean, self.loss_vals[mode_name]))[first_idx:]
@@ -319,6 +321,8 @@ class DeepEnsemble_MDN:
         y_min -= 0.3 * np.abs(y_min)
         y_min = min(y_min, 0)
         y_max += 0.3 * np.abs(y_max)
+        self.loss_min = min(self, loss_min, y_min)
+        self.loss_max = max(self, loss_max, y_max)
         if lower_ylim is not None:
             y_max = np.max(self.loss_vals["train"][min(lower_ylim, epoch)][0])
         ax.set_ylim(y_min, y_max)
@@ -398,6 +402,10 @@ class DeepEnsemble_MDN:
 
         plt.show()
 
+    def save_metrics(self):
+        self.metric_vals.save_pickle(os.path.join(self.model_save_path, "metrics.pkl"))
+        self.loss_vals.save_pickle(os.path.join(self.model_save_path, "loss.pkl"))
+
     def fit(
         self,
         dataloaders: Dict[str, DataLoader],
@@ -449,6 +457,7 @@ class DeepEnsemble_MDN:
                         self.model_save_path, "ens_ep{}.pkl".format(self.epoch)
                     )
                 )
+        self.save_metrics()
 
     def predict(self, dataloader: DataLoader):
         """predict.
@@ -511,7 +520,9 @@ class DeepEnsemble_MDN:
         sigma_2 = 1 / 5 * np.sum(sigma_a2) + sigma_e2
         return [np.sqrt(1 / 5 * sigma_a2), np.sqrt(1 / 5 * sigma_e2)]
 
-    def compare_M500(self, ax: matplotlib.axes, dataloader: DataLoader, label: str = ""):
+    def compare_M500(
+        self, ax: matplotlib.axes, dataloader: DataLoader, label: str = ""
+    ):
         epoch_gt, epoch_pi, epoch_mu, epoch_sigma, mode, sigma = self.predict(
             dataloader
         )
