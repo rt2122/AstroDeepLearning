@@ -321,8 +321,8 @@ class DeepEnsemble_MDN:
         y_min -= 0.3 * np.abs(y_min)
         y_min = min(y_min, 0)
         y_max += 0.3 * np.abs(y_max)
-        self.loss_min = min(self, loss_min, y_min)
-        self.loss_max = max(self, loss_max, y_max)
+        self.loss_min = min(self, self.loss_min, y_min)
+        self.loss_max = max(self, self.loss_max, y_max)
         if lower_ylim is not None:
             y_max = np.max(self.loss_vals["train"][min(lower_ylim, epoch)][0])
         ax.set_ylim(y_min, y_max)
