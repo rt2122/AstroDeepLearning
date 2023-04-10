@@ -403,8 +403,10 @@ class DeepEnsemble_MDN:
         plt.show()
 
     def save_metrics(self):
-        self.metric_vals.save_pickle(os.path.join(self.model_save_path, "metrics.pkl"))
-        self.loss_vals.save_pickle(os.path.join(self.model_save_path, "loss.pkl"))
+        with open(os.path.join(self.model_save_path, "metrics.pkl"), "wb") as fd:
+            pickle.dump(self.metric_vals, fd)
+        with open(os.path.join(self.model_save_path, "loss.pkl"), "wb") as fd:
+            pickle.dump(self.loss_vals, fd)
 
     def fit(
         self,
