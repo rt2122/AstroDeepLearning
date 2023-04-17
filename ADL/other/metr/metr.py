@@ -9,9 +9,15 @@ from collections.abc import Callable
 import ADL.preproc
 
 
-def match_det_to_true(det_cat: pd.DataFrame, det_cat_sc: SkyCoord, true_cat: pd.DataFrame,
-                      true_name: str, match_dist: float, spec_flag: bool = False,
-                      add_flags_to_true_cat: bool = False) -> Dict:
+def match_det_to_true(
+    det_cat: pd.DataFrame,
+    det_cat_sc: SkyCoord,
+    true_cat: pd.DataFrame,
+    true_name: str,
+    match_dist: float,
+    spec_flag: bool = False,
+    add_flags_to_true_cat: bool = False,
+) -> Dict:
     """Match detected catalog to ground truth catalog & calculate recall.
 
     Fill 'found' column, if object was found. If spec_flag is True, fill found_[Special_cat]
@@ -32,11 +38,14 @@ def match_det_to_true(det_cat: pd.DataFrame, det_cat_sc: SkyCoord, true_cat: pd.
     :rtype: Dict
     """
     stats = {}
-    true_sc = SkyCoord(ra=np.array(true_cat['RA'])*u.degree,
-                       dec=np.array(true_cat['DEC'])*u.degree, frame='icrs')
+    true_sc = SkyCoord(
+        ra=np.array(true_cat["RA"]) * u.degree,
+        dec=np.array(true_cat["DEC"]) * u.degree,
+        frame="icrs",
+    )
     idx, d2d, _ = true_sc.match_to_catalog_sky(det_cat_sc)
     matched = d2d.degree <= match_dist
-    det_cat.loc[idx[matched], 'found'] = True
+    det_cat.loc[idx[matched], "found"] = True
     n_matched = np.count_nonzero(matched)
     stats[true_name] = n_matched / len(true_cat)
     if spec_flag:
@@ -44,13 +53,13 @@ def match_det_to_true(det_cat: pd.DataFrame, det_cat_sc: SkyCoord, true_cat: pd.
             det_cat["tRA"] = 0
             det_cat["tDEC"] = 0
         det_cat["found_" + true_name] = False
-        det_cat.loc[idx[matched], 'found_' + true_name] = True
-        det_cat.loc[idx[matched], 'tRA'] = np.array(true_cat["RA"].iloc[matched])
-        det_cat.loc[idx[matched], 'tDEC'] = np.array(true_cat["DEC"].iloc[matched])
+        det_cat.loc[idx[matched], "found_" + true_name] = True
+        det_cat.loc[idx[matched], "tRA"] = np.array(true_cat["RA"].iloc[matched])
+        det_cat.loc[idx[matched], "tDEC"] = np.array(true_cat["DEC"].iloc[matched])
 
-        n_true_matched = np.count_nonzero(det_cat['found_' + true_name])
-        stats['precision_' + true_name] = n_true_matched / len(det_cat)
-        stats['found_' + true_name] = n_true_matched
+        n_true_matched = np.count_nonzero(det_cat["found_" + true_name])
+        stats["precision_" + true_name] = n_true_matched / len(det_cat)
+        stats["found_" + true_name] = n_true_matched
 
     if add_flags_to_true_cat:
         true_cat["found"] = False
@@ -58,9 +67,12 @@ def match_det_to_true(det_cat: pd.DataFrame, det_cat_sc: SkyCoord, true_cat: pd.
     return stats
 
 
-def do_all_stats(det_cat: pd.DataFrame, true_cats: Dict[str, pd.DataFrame],
-                 match_dist: float = 400/(60)**2, spec_precision: List[str] = []
-                 ) -> Dict[str, Union[int, float]]:
+def do_all_stats(
+    det_cat: pd.DataFrame,
+    true_cats: Dict[str, pd.DataFrame],
+    match_dist: float = 400 / (60) ** 2,
+    spec_precision: List[str] = [],
+) -> Dict[str, Union[int, float]]:
     """For detected catalog calculate metrics for selected ground truth catalogs.
 
     Returns dict, where name of the catalog shows recall. Also contains general precision and
@@ -77,11 +89,14 @@ def do_all_stats(det_cat: pd.DataFrame, true_cats: Dict[str, pd.DataFrame],
     :type spec_precision: List[str]
     :rtype: Dict[str, Union[int, float]]
     """
-    det_cat['found'] = False
+    det_cat["found"] = False
     for cat in spec_precision:
-        det_cat['found_' + cat] = False
-    det_cat_sc = SkyCoord(ra=np.array(det_cat['RA'])*u.degree,
-                          dec=np.array(det_cat['DEC'])*u.degree, frame='icrs')
+        det_cat["found_" + cat] = False
+    det_cat_sc = SkyCoord(
+        ra=np.array(det_cat["RA"]) * u.degree,
+        dec=np.array(det_cat["DEC"]) * u.degree,
+        frame="icrs",
+    )
     stats = {}
     for true_name in true_cats:
         if len(true_cats[true_name]) == 0:
@@ -89,13 +104,14 @@ def do_all_stats(det_cat: pd.DataFrame, true_cats: Dict[str, pd.DataFrame],
         spec_flag = False
         if true_name in spec_precision:
             spec_flag = True
-        cur_stats = match_det_to_true(det_cat, det_cat_sc, true_cats[true_name], true_name,
-                                      match_dist, spec_flag)
+        cur_stats = match_det_to_true(
+            det_cat, det_cat_sc, true_cats[true_name], true_name, match_dist, spec_flag
+        )
         stats.update(cur_stats)
 
-    stats['found'] = np.count_nonzero(det_cat['found'])
-    stats['precision'] = stats['found'] / len(det_cat)
-    stats['all'] = len(det_cat)
+    stats["found"] = np.count_nonzero(det_cat["found"])
+    stats["precision"] = stats["found"] / len(det_cat)
+    stats["all"] = len(det_cat)
     return stats
 
 
@@ -110,14 +126,17 @@ def cut_cat_by_pix(df: pd.DataFrame, big_pix: List[int]) -> pd.DataFrame:
     :type big_pix: List[int]
     :rtype: pd.DataFrame
     """
-    pix = ADL.preproc.radec2pix(df['RA'], df['DEC'], 2)
+    pix = ADL.preproc.radec2pix(df["RA"], df["DEC"], 2)
     df = df[np.in1d(pix, big_pix)]
     df.index = np.arange(len(df))
     return df
 
 
-def cut_cat(df: pd.DataFrame, dict_cut: Dict[str, Callable[[float], bool]] = {},
-            big_pix: List[int] = None) -> pd.DataFrame:
+def cut_cat(
+    df: pd.DataFrame,
+    dict_cut: Dict[str, Callable[[float], bool]] = {},
+    big_pix: List[int] = None,
+) -> pd.DataFrame:
     """For input catalog remove all objects, that don't fit conditions.
 
     :param df: Input catalog.
@@ -129,10 +148,13 @@ def cut_cat(df: pd.DataFrame, dict_cut: Dict[str, Callable[[float], bool]] = {},
     :rtype: pd.DataFrame
     """
     if "l" in dict_cut or "b" in dict_cut:
-        sc = SkyCoord(ra=np.array(df['RA'])*u.degree,
-                      dec=np.array(df['DEC'])*u.degree, frame='icrs')
-        df['b'] = sc.galactic.b.degree
-        df['l'] = sc.galactic.l.degree
+        sc = SkyCoord(
+            ra=np.array(df["RA"]) * u.degree,
+            dec=np.array(df["DEC"]) * u.degree,
+            frame="icrs",
+        )
+        df["b"] = sc.galactic.b.degree
+        df["l"] = sc.galactic.l.degree
     for prm, func in dict_cut.items():
         if prm in df:
             df = df.loc[map(func, df[prm])]
@@ -155,9 +177,14 @@ def cats2dict(dir_path: str) -> Dict[str, pd.DataFrame]:
     return true_cats
 
 
-def stats_with_rules(det_cat: pd.DataFrame, true_cats: List[pd.DataFrame], rules: Dict = {},
-                     big_pix: List[int] = None, match_dist: float = 400/(60)**2,
-                     spec_precision: List[str] = []):
+def stats_with_rules(
+    det_cat: pd.DataFrame,
+    true_cats: List[pd.DataFrame],
+    rules: Dict = {},
+    big_pix: List[int] = None,
+    match_dist: float = 400 / (60) ** 2,
+    spec_precision: List[str] = [],
+):
     """Calculate metrics for detected catalog with selected rules.
 
     :param det_cat: Detected catalog.
@@ -177,13 +204,16 @@ def stats_with_rules(det_cat: pd.DataFrame, true_cats: List[pd.DataFrame], rules
     if len(det_cat) == 0:
         return None
     true_cats = {name: cut_cat(cat, rules, big_pix) for name, cat in true_cats.items()}
-    stats = do_all_stats(det_cat, true_cats, match_dist=match_dist, spec_precision=spec_precision)
+    stats = do_all_stats(
+        det_cat, true_cats, match_dist=match_dist, spec_precision=spec_precision
+    )
     stats["n_det"] = len(det_cat)
     return stats
 
 
-def active_learning_cat(det_cat_path: str, true_dir: str, true_names: List[str], match_dist: float
-                        ) -> pd.DataFrame:
+def active_learning_cat(
+    det_cat_path: str, true_dir: str, true_names: List[str], match_dist: float
+) -> pd.DataFrame:
     """Create catalog for active learning.
 
     :param det_cat_path:
@@ -199,10 +229,13 @@ def active_learning_cat(det_cat_path: str, true_dir: str, true_names: List[str],
     det_cat = pd.read_csv(det_cat_path)
     det_cat["found"] = False
     true_cats = cats2dict(true_dir)
-    det_sc = SkyCoord(ra=det_cat["RA"] * u.degree, dec=det_cat["DEC"] * u.degree, frame="icrs")
+    det_sc = SkyCoord(
+        ra=det_cat["RA"] * u.degree, dec=det_cat["DEC"] * u.degree, frame="icrs"
+    )
     for true_name in true_names:
-        match_det_to_true(det_cat, det_sc, true_cats[true_name], true_name, match_dist,
-                          spec_flag=True)
+        match_det_to_true(
+            det_cat, det_sc, true_cats[true_name], true_name, match_dist, spec_flag=True
+        )
     det_cat = det_cat[det_cat["found"]]
     det_cat.drop(columns=["RA", "DEC"], inplace=True)
     det_cat.rename({"tRA": "RA", "tDEC": "DEC"}, axis="columns", inplace=True)

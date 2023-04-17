@@ -7,8 +7,9 @@ from typing import Tuple, List
 from itertools import cycle
 
 
-def get_ax(rows: int = 1, cols: int = 1, scale: int = 12, shape: Tuple[int] = None
-           ) -> matplotlib.axes.Axes:
+def get_ax(
+    rows: int = 1, cols: int = 1, scale: int = 12, shape: Tuple[int] = None
+) -> matplotlib.axes.Axes:
     """Return a Matplotlib Axes array to be used in all visualizations.
 
     :param rows: Number of rows.
@@ -29,9 +30,15 @@ def get_ax(rows: int = 1, cols: int = 1, scale: int = 12, shape: Tuple[int] = No
     return f, ax
 
 
-def show_history(ax: matplotlib.axes.Axes, path: str, metrics: List[str] = None,
-                 epochs: List = None, find_min: str = None, find_max: str = None,
-                 datasets: List[str] = []) -> None:
+def show_history(
+    ax: matplotlib.axes.Axes,
+    path: str,
+    metrics: List[str] = None,
+    epochs: List = None,
+    find_min: str = None,
+    find_max: str = None,
+    datasets: List[str] = [],
+) -> None:
     """Show history for model.
 
     :param ax: Axes to plot train curve.
@@ -52,36 +59,36 @@ def show_history(ax: matplotlib.axes.Axes, path: str, metrics: List[str] = None,
     """
     if ax is None:
         ax = get_ax()
-    colors = 'bgrcmyk'
+    colors = "bgrcmyk"
 
     df = pd.read_csv(path)
 
     if epochs is not None:
         df = df[np.in1d(df["epoch"], range(*epochs))]
-    epochs = df['epoch']
+    epochs = df["epoch"]
 
     if metrics is None:
-        metrics = [k for k in list(df) if k != 'epoch']
+        metrics = [k for k in list(df) if k != "epoch"]
 
     for metric, c in zip(metrics, cycle(colors)):
-        s, = ax.plot(epochs, df[metric], c=c)
+        (s,) = ax.plot(epochs, df[metric], c=c)
         s.set_label(metric)
 
         if len(datasets) > 0:
             for dataset, linestyle in zip(datasets, ["--", ":", "-."]):
-                cur_metric = dataset + '_' + metric
+                cur_metric = dataset + "_" + metric
                 if cur_metric in df.columns:
-                    s, = ax.plot(epochs, df[cur_metric], c=c, linestyle=linestyle)
+                    (s,) = ax.plot(epochs, df[cur_metric], c=c, linestyle=linestyle)
                     s.set_label(cur_metric)
 
     if find_min is not None:
         m = df[find_min].argmin()
-        v = ax.axvline(df.loc[m, "epoch"], c='r')
+        v = ax.axvline(df.loc[m, "epoch"], c="r")
         ep = df["epoch"][m]
         v.set_label(f"Minimum of {find_min} at {ep}")
     if find_max is not None:
         m = df[find_max].argmax()
-        v = ax.axvline(df.loc[m, "epoch"], c='r')
+        v = ax.axvline(df.loc[m, "epoch"], c="r")
         ep = df["epoch"][m]
         v.set_label(f"Maximum of {find_max} at {ep}")
 

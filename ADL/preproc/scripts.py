@@ -3,8 +3,14 @@ import os
 import healpy as hp
 import numpy as np
 from tqdm import tqdm
-from . import (match_channels, fits2df, normalize_asym, one_pixel_fragmentation,
-               draw_masks_and_save, generate_patch_coords)
+from . import (
+    match_channels,
+    fits2df,
+    normalize_asym,
+    one_pixel_fragmentation,
+    draw_masks_and_save,
+    generate_patch_coords,
+)
 from typing import List
 
 
@@ -23,8 +29,10 @@ def preproc_HFI_Planck(inpath: str, outpath: str) -> None:
     LFI = ["030", "044", "070"]
     HFI = ["100", "143", "217", "353", "545", "857"]
     files_by_ch = match_channels(inpath, LFI + HFI)
-    data_by_ch = {ch: fits2df(os.path.join(inpath, file), "I_STOKES")
-                  for ch, file in files_by_ch.items()}
+    data_by_ch = {
+        ch: fits2df(os.path.join(inpath, file), "I_STOKES")
+        for ch, file in files_by_ch.items()
+    }
     data_by_ch["030"] = normalize_asym(data_by_ch["030"], p=(0.002, 0.05))
     data_by_ch["044"] = normalize_asym(data_by_ch["044"])
     data_by_ch["070"] = normalize_asym(data_by_ch["070"])
@@ -37,7 +45,7 @@ def preproc_HFI_Planck(inpath: str, outpath: str) -> None:
 
     for ch in LFI:
         data = data_by_ch[ch]
-        data_by_ch[ch] = hp.ud_grade(data, 2**11, order_in = "nest", order_out="nest")
+        data_by_ch[ch] = hp.ud_grade(data, 2**11, order_in="nest", order_out="nest")
 
     os.mkdir(os.path.join(outpath, "hfi"))
     os.mkdir(os.path.join(outpath, "lfi"))
@@ -53,13 +61,14 @@ def preproc_HFI_Planck(inpath: str, outpath: str) -> None:
             for ch_idx, ch in enumerate(LFI + HFI):
                 data = data_by_ch[ch]
                 img[i, :, ch_idx] = data[pix_matr[i]]
-        np.save(os.path.join(outpath, "lfi", '{}.npy'.format(ipix)), img[:,:,:3])
-        np.save(os.path.join(outpath, "hfi", '{}.npy'.format(ipix)), img[:,:,3:])
+        np.save(os.path.join(outpath, "lfi", "{}.npy".format(ipix)), img[:, :, :3])
+        np.save(os.path.join(outpath, "hfi", "{}.npy".format(ipix)), img[:, :, 3:])
     return
 
 
-def generate_masks_and_patches_Planck(inpath: str, outpath: str, n_patches: str,
-                                      cats_subset: List[str]) -> None:
+def generate_masks_and_patches_Planck(
+    inpath: str, outpath: str, n_patches: str, cats_subset: List[str]
+) -> None:
     """Generate target data.
 
     :param inpath: Directory with catalogs. Each catalog should have columns: [RA, DEC].
@@ -75,7 +84,9 @@ def generate_masks_and_patches_Planck(inpath: str, outpath: str, n_patches: str,
     print("Creating masks.")
     draw_masks_and_save(inpath, outpath)
     print("Generating coordinates for patches.")
-    patches = generate_patch_coords(inpath, n_patches=int(n_patches), cats_subset=cats_subset)
+    patches = generate_patch_coords(
+        inpath, n_patches=int(n_patches), cats_subset=cats_subset
+    )
     patches.to_csv(os.path.join(outpath, "pc.csv"), index=False)
     print(f"Number of patches generated: {len(patches)}.")
     # TODO automatically generate description (number of patches for each pixel + catalogs)

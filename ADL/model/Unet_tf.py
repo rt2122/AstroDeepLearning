@@ -7,8 +7,15 @@ from ADL.dataset import Planck_Dataset
 
 from tensorflow.keras import backend as K
 from tensorflow.keras import Input
-from tensorflow.keras.layers import (Conv2D, MaxPooling2D, Dropout, concatenate, UpSampling2D,
-                                     BatchNormalization, Layer)
+from tensorflow.keras.layers import (
+    Conv2D,
+    MaxPooling2D,
+    Dropout,
+    concatenate,
+    UpSampling2D,
+    BatchNormalization,
+    Layer,
+)
 from tensorflow.keras.models import load_model, Model
 from tensorflow.keras.callbacks import ModelCheckpoint, LearningRateScheduler, Callback
 from tensorflow.keras.optimizers import Adam
@@ -73,43 +80,72 @@ class ADL_Unet:
     :type test_as_val: Planck_Dataset
     """
 
-    def __init__(self, model_path: str, lr: float = 1e-4, add_batch_norm: bool = False,
-                 lr_scheduler: Union[str, Dict[int, float]] = None, save_best_only: bool = False,
-                 old_version: bool = False, old_upgrade: bool = False,
-                 test_as_val: Planck_Dataset = None, model_prms: Dict = {}):
+    def __init__(
+        self,
+        model_path: str,
+        lr: float = 1e-4,
+        add_batch_norm: bool = False,
+        lr_scheduler: Union[str, Dict[int, float]] = None,
+        save_best_only: bool = False,
+        old_version: bool = False,
+        old_upgrade: bool = False,
+        test_as_val: Planck_Dataset = None,
+        model_prms: Dict = {},
+    ):
         """Initialize."""
         if old_version:
-            self.model = Unet_model_old(lr=lr, add_batch_norm=add_batch_norm,
-                                        **model_prms)
+            self.model = Unet_model_old(
+                lr=lr, add_batch_norm=add_batch_norm, **model_prms
+            )
         else:
             self.model = Unet_model(**model_prms)
-        self.callbacks = [ModelCheckpoint(model_path, monitor='val_loss', verbose=1,
-                                          save_best_only=save_best_only, mode='min',
-                                          save_weights_only=False)]
+        self.callbacks = [
+            ModelCheckpoint(
+                model_path,
+                monitor="val_loss",
+                verbose=1,
+                save_best_only=save_best_only,
+                mode="min",
+                save_weights_only=False,
+            )
+        ]
         if type(lr_scheduler) == str:
             if lr_scheduler == "default":
                 self.callbacks.append(LearningRateScheduler(default_lr))
             else:
                 print("LR preset not understood. No scheduler.")
         elif type(lr_scheduler) == dict:
-            self.callbacks.append(LearningRateScheduler(lambda epoch, lr: dict_lr(epoch, lr,
-                                                                                  lr_scheduler)))
+            self.callbacks.append(
+                LearningRateScheduler(
+                    lambda epoch, lr: dict_lr(epoch, lr, lr_scheduler)
+                )
+            )
 
         self.test_as_val = False
         if test_as_val is not None:
-            self.callbacks.append(AdditionalValidationSets([(test_as_val, "test")], verbose=1))
+            self.callbacks.append(
+                AdditionalValidationSets([(test_as_val, "test")], verbose=1)
+            )
             self.test_as_val = True
         self.model_path = model_path
         self.history = []
 
     def get_old_history(self):
         """Load old history."""
-        history = pd.read_csv(os.path.join(os.path.dirname(self.model_path), "history.csv"))
+        history = pd.read_csv(
+            os.path.join(os.path.dirname(self.model_path), "history.csv")
+        )
         history.drop(columns=["epoch"], inplace=True)
         self.history = history.to_dict("records")
 
-    def train(self, trainset: Planck_Dataset, valset: Planck_Dataset, n_epochs: int,
-              init_epoch: int = 0, continue_train: bool = False) -> None:
+    def train(
+        self,
+        trainset: Planck_Dataset,
+        valset: Planck_Dataset,
+        n_epochs: int,
+        init_epoch: int = 0,
+        continue_train: bool = False,
+    ) -> None:
         """Train model.
 
         :param trainset: Dataset for training.
@@ -130,9 +166,14 @@ class ADL_Unet:
 
         for i in range(init_epoch, init_epoch + n_epochs):
             print(f"Epoch #{i}")
-            history = self.model.fit(trainset.generator(), epochs=i+1, verbose=1,
-                                     callbacks=self.callbacks,
-                                     validation_data=valset.generator(), initial_epoch=i)
+            history = self.model.fit(
+                trainset.generator(),
+                epochs=i + 1,
+                verbose=1,
+                callbacks=self.callbacks,
+                validation_data=valset.generator(),
+                initial_epoch=i,
+            )
             if self.test_as_val:
                 for callback in self.callbacks:
                     if type(callback) == AdditionalValidationSets:
@@ -150,9 +191,11 @@ class ADL_Unet:
         df = pd.concat(map(lambda x: pd.DataFrame(x, index=[0]), self.history))
         df.index = np.arange(1, len(df) + 1)
         df.index.name = "epoch"
-        df.to_csv(os.path.join(os.path.dirname(self.model_path), 'history.csv'))
+        df.to_csv(os.path.join(os.path.dirname(self.model_path), "history.csv"))
 
-    def make_prediction(self, dataset: Planck_Dataset, idx: int = 0) -> Tuple[np.ndarray]:
+    def make_prediction(
+        self, dataset: Planck_Dataset, idx: int = 0
+    ) -> Tuple[np.ndarray]:
         """Make prediction for one batch.
 
         :param dataset: Dataset for prediction.
@@ -197,9 +240,16 @@ def default_lr(epoch: int, lr: float) -> float:
     return lr
 
 
-def conv_block(inputs: Layer, use_batch_norm: bool = False, dropout_rate: float = 0.3,
-               filters: int = 16, kernel_size: Tuple[int] = (3, 3), activation: str = "relu",
-               kernel_initializer: str = "he_normal", padding: str = "same"):
+def conv_block(
+    inputs: Layer,
+    use_batch_norm: bool = False,
+    dropout_rate: float = 0.3,
+    filters: int = 16,
+    kernel_size: Tuple[int] = (3, 3),
+    activation: str = "relu",
+    kernel_initializer: str = "he_normal",
+    padding: str = "same",
+):
     """Double convolution block.
 
     :param inputs: Input layer.
@@ -220,24 +270,42 @@ def conv_block(inputs: Layer, use_batch_norm: bool = False, dropout_rate: float 
     :type padding: str
     """
 
-    c = Conv2D(filters, kernel_size, activation=activation, kernel_initializer=kernel_initializer,
-               padding=padding, use_bias=not use_batch_norm)(inputs)
+    c = Conv2D(
+        filters,
+        kernel_size,
+        activation=activation,
+        kernel_initializer=kernel_initializer,
+        padding=padding,
+        use_bias=not use_batch_norm,
+    )(inputs)
     if use_batch_norm:
         c = BatchNormalization()(c)
     if dropout_rate > 0.0:
         c = Dropout(dropout_rate)(c)
-    c = Conv2D(filters, kernel_size, activation=activation, kernel_initializer=kernel_initializer,
-               padding=padding, use_bias=not use_batch_norm)(c)
+    c = Conv2D(
+        filters,
+        kernel_size,
+        activation=activation,
+        kernel_initializer=kernel_initializer,
+        padding=padding,
+        use_bias=not use_batch_norm,
+    )(c)
     if use_batch_norm:
         c = BatchNormalization()(c)
     return c
 
 
-def Unet_model(input_shape: Tuple[int] = (64, 64, 6), n_classes: int = 1,
-               dropout_rate: float = 0.2, n_filters: int = 64, n_blocks: int = 4,
-               output_activation: str = 'sigmoid', lr: float = 10**-4, weights: str = None,
-               equal_filters: bool = False
-               ) -> Model:
+def Unet_model(
+    input_shape: Tuple[int] = (64, 64, 6),
+    n_classes: int = 1,
+    dropout_rate: float = 0.2,
+    n_filters: int = 64,
+    n_blocks: int = 4,
+    output_activation: str = "sigmoid",
+    lr: float = 10**-4,
+    weights: str = None,
+    equal_filters: bool = False,
+) -> Model:
     """Unet model.
 
     :param input_shape: Shape of input data.
@@ -261,9 +329,12 @@ def Unet_model(input_shape: Tuple[int] = (64, 64, 6), n_classes: int = 1,
     :rtype: Model
     """
     if weights is not None:
-        model = load_model(weights, custom_objects={'iou': iou, 'dice': dice})
-        model.compile(optimizer=Adam(lr=lr), loss=binary_crossentropy, metrics=['accuracy',
-                                                                                iou, dice])
+        model = load_model(weights, custom_objects={"iou": iou, "dice": dice})
+        model.compile(
+            optimizer=Adam(lr=lr),
+            loss=binary_crossentropy,
+            metrics=["accuracy", iou, dice],
+        )
         return model
 
     inputs = Input(input_shape)
@@ -271,16 +342,26 @@ def Unet_model(input_shape: Tuple[int] = (64, 64, 6), n_classes: int = 1,
 
     encoder = []
     for i in range(n_blocks):
-        x = conv_block(inputs=x, filters=n_filters, use_batch_norm=False, dropout_rate=0.0,
-                       padding='same')
+        x = conv_block(
+            inputs=x,
+            filters=n_filters,
+            use_batch_norm=False,
+            dropout_rate=0.0,
+            padding="same",
+        )
         encoder.append(x)
         x = MaxPooling2D((2, 2), strides=2)(x)
         x = Dropout(dropout_rate)(x)
         if not equal_filters:
             n_filters *= 2
 
-    x = conv_block(inputs=x, filters=n_filters, use_batch_norm=False, dropout_rate=0.0,
-                   padding='same')
+    x = conv_block(
+        inputs=x,
+        filters=n_filters,
+        use_batch_norm=False,
+        dropout_rate=0.0,
+        padding="same",
+    )
 
     for conv in reversed(encoder):
         if not equal_filters:
@@ -288,20 +369,35 @@ def Unet_model(input_shape: Tuple[int] = (64, 64, 6), n_classes: int = 1,
         x = UpSampling2D()(x)
 
         x = concatenate([x, conv])
-        x = conv_block(inputs=x, filters=n_filters, use_batch_norm=False, dropout_rate=0.0,
-                       padding='same')
+        x = conv_block(
+            inputs=x,
+            filters=n_filters,
+            use_batch_norm=False,
+            dropout_rate=0.0,
+            padding="same",
+        )
         x = Dropout(dropout_rate)(x)
 
     outputs = Conv2D(n_classes, (1, 1), activation=output_activation)(x)
 
     model = Model(inputs=[inputs], outputs=[outputs])
-    model.compile(optimizer=Adam(lr=lr), loss=binary_crossentropy, metrics=['accuracy', iou, dice])
+    model.compile(
+        optimizer=Adam(lr=lr), loss=binary_crossentropy, metrics=["accuracy", iou, dice]
+    )
     return model
 
 
-def Unet_model_old(input_shape: Tuple[int] = (64, 64, 6), n_filters: int = 8, n_blocks: int = 5,
-                   n_classes: int = 1, lr: float = 1e-4, add_batch_norm: bool = False,
-                   dropout_prm: float = 0.2, weights: str = None, upgrade: bool = False) -> Model:
+def Unet_model_old(
+    input_shape: Tuple[int] = (64, 64, 6),
+    n_filters: int = 8,
+    n_blocks: int = 5,
+    n_classes: int = 1,
+    lr: float = 1e-4,
+    add_batch_norm: bool = False,
+    dropout_prm: float = 0.2,
+    weights: str = None,
+    upgrade: bool = False,
+) -> Model:
     """Create tensorflow model Unet (old version with big amount of parameters).
 
     :param input_shape: Shape of input data. Default for Planck data.
@@ -325,46 +421,71 @@ def Unet_model_old(input_shape: Tuple[int] = (64, 64, 6), n_filters: int = 8, n_
     :rtype: Model
     """
     if weights is not None:
-        model = load_model(weights, custom_objects={'iou': iou, 'dice': dice})
-        model.compile(optimizer=Adam(lr=lr), loss=binary_crossentropy, metrics=['accuracy',
-                                                                                iou, dice])
+        model = load_model(weights, custom_objects={"iou": iou, "dice": dice})
+        model.compile(
+            optimizer=Adam(lr=lr),
+            loss=binary_crossentropy,
+            metrics=["accuracy", iou, dice],
+        )
         return model
 
     encoder = []
     inputs = Input(input_shape)
     cur = inputs
     for i in range(n_blocks):
-        cur = conv_block(inputs=cur, filters=n_filters, use_batch_norm=add_batch_norm,
-                         dropout_rate=0.0, padding="same")
+        cur = conv_block(
+            inputs=cur,
+            filters=n_filters,
+            use_batch_norm=add_batch_norm,
+            dropout_rate=0.0,
+            padding="same",
+        )
 
         encoder.append(cur)
 
-        cur = MaxPooling2D(padding='valid')(cur)
+        cur = MaxPooling2D(padding="valid")(cur)
         cur = Dropout(dropout_prm)(cur)
 
         n_filters *= 2
     if upgrade:
-        cur = conv_block(inputs=cur, filters=n_filters, use_batch_norm=add_batch_norm,
-                         dropout_rate=0.0, padding="same")
+        cur = conv_block(
+            inputs=cur,
+            filters=n_filters,
+            use_batch_norm=add_batch_norm,
+            dropout_rate=0.0,
+            padding="same",
+        )
 
     for i in reversed(range(n_blocks)):
         cur = UpSampling2D()(cur)
-        cur = Conv2D(filters=n_filters, kernel_size=(3, 3), activation="relu",
-                     kernel_initializer="he_normal", padding="same",
-                     use_bias=not add_batch_norm)(cur)
+        cur = Conv2D(
+            filters=n_filters,
+            kernel_size=(3, 3),
+            activation="relu",
+            kernel_initializer="he_normal",
+            padding="same",
+            use_bias=not add_batch_norm,
+        )(cur)
         cur = concatenate([cur, encoder[i]], axis=3)
 
-        cur = Conv2D(filters=n_filters, kernel_size=(3, 3), activation="relu",
-                     kernel_initializer="he_normal", padding="same",
-                     use_bias=not add_batch_norm)(cur)
+        cur = Conv2D(
+            filters=n_filters,
+            kernel_size=(3, 3),
+            activation="relu",
+            kernel_initializer="he_normal",
+            padding="same",
+            use_bias=not add_batch_norm,
+        )(cur)
         cur = Dropout(dropout_prm)(cur)
 
         n_filters //= 2
 
-    cur = Conv2D(n_classes, kernel_size=3, padding='same', activation="sigmoid")(cur)
+    cur = Conv2D(n_classes, kernel_size=3, padding="same", activation="sigmoid")(cur)
 
     model = Model(inputs=inputs, outputs=cur)
-    model.compile(optimizer=Adam(lr=lr), loss=binary_crossentropy, metrics=['accuracy', iou, dice])
+    model.compile(
+        optimizer=Adam(lr=lr), loss=binary_crossentropy, metrics=["accuracy", iou, dice]
+    )
     return model
 
 
@@ -374,7 +495,10 @@ class AdditionalValidationSets(Callback):
     https://github.com/LucaCappelletti94/keras_validation_sets/blob/master/additional_validation_sets.py
     `_.
     """
-    def __init__(self, validation_sets: List[Tuple[Planck_Dataset, str]], verbose: int = 0):
+
+    def __init__(
+        self, validation_sets: List[Tuple[Planck_Dataset, str]], verbose: int = 0
+    ):
         """Initialize.
 
         :param validation_sets: list of 2-tuples (dataset, name).
@@ -426,5 +550,5 @@ class AdditionalValidationSets(Callback):
             results = self.model.evaluate(validation_generator, steps=validation_steps)
 
             for metric, result in zip(self.model.metrics_names, results):
-                valuename = validation_set_name + '_' + metric
+                valuename = validation_set_name + "_" + metric
                 self.history.setdefault(valuename, []).append(result)

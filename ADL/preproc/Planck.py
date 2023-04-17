@@ -44,8 +44,12 @@ def match_channels(indir: str, channels: List[str]) -> Dict[str, str]:
     return files_by_ch
 
 
-def normalize_asym(i_data: np.ndarray, p: Tuple[float] = (10**-3, 0.99),
-                   n_bins: int = 500, outlier_thr: float = 10**4) -> np.ndarray:
+def normalize_asym(
+    i_data: np.ndarray,
+    p: Tuple[float] = (10**-3, 0.99),
+    n_bins: int = 500,
+    outlier_thr: float = 10**4,
+) -> np.ndarray:
     """Normalize data with asymmetrical distribution.
 
     (By fitting Gauss curve to left wing of the distribution).
@@ -62,7 +66,7 @@ def normalize_asym(i_data: np.ndarray, p: Tuple[float] = (10**-3, 0.99),
     """
     # Narrow down histogram
     q = np.quantile(i_data, p)
-    bins = np.arange(*q, (q[1] - q[0])/n_bins)
+    bins = np.arange(*q, (q[1] - q[0]) / n_bins)
     i_cut = i_data[np.where((i_data < q[1]) & (i_data > q[0]))]
     h, _ = np.histogram(i_data, bins)
 

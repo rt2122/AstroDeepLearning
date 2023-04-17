@@ -12,9 +12,13 @@ from skimage.filters import roberts
 from skimage.measure import moments
 
 
-def connect_masks(masks: List[np.ndarray], pic_idx: List[Tuple[int]], patch_size: int = 64,
-                  big_shape: Tuple[int] = (1024, 1024, 1), data_type: type = np.float64
-                  ) -> np.ndarray:
+def connect_masks(
+    masks: List[np.ndarray],
+    pic_idx: List[Tuple[int]],
+    patch_size: int = 64,
+    big_shape: Tuple[int] = (1024, 1024, 1),
+    data_type: type = np.float64,
+) -> np.ndarray:
     """Create one big mask from a lot of small ones.
 
     :param masks: Small masks.
@@ -34,17 +38,25 @@ def connect_masks(masks: List[np.ndarray], pic_idx: List[Tuple[int]], patch_size
 
     for i in range(len(masks)):
         x, y = pic_idx[i]
-        connected_masks[x:x+patch_size, y:y+patch_size, :] += masks[i]
-        coef[x:x+patch_size, y:y+patch_size, :] += np.ones((patch_size, patch_size, 1),
-                                                           dtype=data_type)
+        connected_masks[x : x + patch_size, y : y + patch_size, :] += masks[i]
+        coef[x : x + patch_size, y : y + patch_size, :] += np.ones(
+            (patch_size, patch_size, 1), dtype=data_type
+        )
 
     connected_masks /= coef
     return connected_masks
 
 
-def scan_sky_Planck(data_path: str, out_path: str, model_path: str, step: int = 64,
-                    patch_size: int = 64, nside: int = 2, verbose: bool = True,
-                    lfi_path: str = None) -> None:
+def scan_sky_Planck(
+    data_path: str,
+    out_path: str,
+    model_path: str,
+    step: int = 64,
+    patch_size: int = 64,
+    nside: int = 2,
+    verbose: bool = True,
+    lfi_path: str = None,
+) -> None:
     """Scan of all 48 HEALPix pixels with chosen model.
 
     Each tile is divided into patches, and then small scans connected together.
@@ -72,31 +84,43 @@ def scan_sky_Planck(data_path: str, out_path: str, model_path: str, step: int = 
     if verbose:
         iter_pixels = tqdm(iter_pixels)
     for ipix in iter_pixels:
-        big_pic = np.load(os.path.join(data_path, f'{ipix}.npy'))
+        big_pic = np.load(os.path.join(data_path, f"{ipix}.npy"))
         if lfi_path:
-            big_pic = np.dstack([np.load(os.path.join(lfi_path, f"{ipix}.npy")), big_pic])
+            big_pic = np.dstack(
+                [np.load(os.path.join(lfi_path, f"{ipix}.npy")), big_pic]
+            )
         pics = []
         pic_idx = []
 
         starts = []
         for k in range(2):
-            x_st = [i for i in range(0, big_pic.shape[k], step)
-                    if i + patch_size <= big_pic.shape[k]] + [big_pic.shape[k] - patch_size]
+            x_st = [
+                i
+                for i in range(0, big_pic.shape[k], step)
+                if i + patch_size <= big_pic.shape[k]
+            ] + [big_pic.shape[k] - patch_size]
             starts.append(x_st)
 
         for i in starts[0]:
             for j in starts[1]:
-                pic = big_pic[i:i+patch_size, j:j+patch_size, :]
+                pic = big_pic[i : i + patch_size, j : j + patch_size, :]
                 if pic.shape == (patch_size, patch_size, pic.shape[-1]):
                     pics.append(pic)
                     pic_idx.append((i, j))
         pred = model.predict(np.array(pics), verbose=0)
         pred = connect_masks(pred, pic_idx, big_shape=(1024, 1024) + (pred.shape[-1],))
-        np.save(os.path.join(out_path, f'{ipix}.npy'), pred)
+        np.save(os.path.join(out_path, f"{ipix}.npy"), pred)
 
 
-def fast_skan_sky_Planck(data_path: str, out_path: str, model_path: str, nside: int = 2,
-                         verbose: bool = True, lfi_path: str = None, model_prms: dict = {}) -> None:
+def fast_skan_sky_Planck(
+    data_path: str,
+    out_path: str,
+    model_path: str,
+    nside: int = 2,
+    verbose: bool = True,
+    lfi_path: str = None,
+    model_prms: dict = {},
+) -> None:
     """Fast scan of all 48 HEALPix pixels with chosen model.
 
     Each tile scanned at once.
@@ -118,10 +142,15 @@ def fast_skan_sky_Planck(data_path: str, out_path: str, model_path: str, nside: 
     model = Unet_model(weights=model_path)
     fast_model = Unet_model(**model_prms)
     fast_model.set_weights(model.get_weights())
-    X = [np.load(os.path.join(data_path, f'{ipix}.npy')) for ipix in range(hp.nside2npix(2))]
+    X = [
+        np.load(os.path.join(data_path, f"{ipix}.npy"))
+        for ipix in range(hp.nside2npix(2))
+    ]
     if lfi_path:
-        X = [np.dstack([np.load(os.path.join(lfi_path, f'{ipix}.npy')), hfi_data])
-             for ipix, hfi_data in enumerate(X)]
+        X = [
+            np.dstack([np.load(os.path.join(lfi_path, f"{ipix}.npy")), hfi_data])
+            for ipix, hfi_data in enumerate(X)
+        ]
     pred = fast_model.predict(np.array(X))
     iter_pixels = range(hp.nside2npix(nside))
     if verbose:
@@ -196,7 +225,7 @@ def find_centers_on_mask(mask: np.ndarray, thr: float) -> pd.DataFrame:
     :rtype: pd.DataFrame
     """
     if len(mask.shape) > 2:
-        mask = mask[:,:,0]
+        mask = mask[:, :, 0]
     mask_binary = np.copy(mask)
     mask_binary = np.array(mask_binary >= thr, dtype=np.float32)
     figures = divide_figures(mask_binary)
@@ -235,7 +264,7 @@ def pix_extract_catalog(pred_path: str, ipix: str, thr: float = 0.1) -> pd.DataF
     tables = []
     f_matr = one_pixel_fragmentation(2, ipix, 2**11)
     for i in range(pred.shape[-1]):
-        df = find_centers_on_mask(pred[:,:,i], thr)
+        df = find_centers_on_mask(pred[:, :, i], thr)
         if len(pred) > 0:
             pixels = f_matr[np.array(df["y"]), np.array(df["x"])]
             ra, dec = pix2radec(pixels, nside=2**11)
@@ -247,7 +276,9 @@ def pix_extract_catalog(pred_path: str, ipix: str, thr: float = 0.1) -> pd.DataF
     return tables
 
 
-def sky_extract_catalog(pred_path: str, thr: float = 0.1, verbose: bool = True) -> pd.DataFrame:
+def sky_extract_catalog(
+    pred_path: str, thr: float = 0.1, verbose: bool = True
+) -> pd.DataFrame:
     """Extract catalog with sky coordinates for all pixels.
 
     :param pred_path: Path to directory with predicted masks.

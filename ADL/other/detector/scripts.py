@@ -3,8 +3,16 @@ from . import scan_sky_Planck, fast_skan_sky_Planck, sky_extract_catalog
 import os
 
 
-def scan_Planck_Unet(model_path: str, data_path: str, out_path: str, step: str, device: str,
-                     verbose: bool = True, lfi_path: str = None, model_prms: dict = {}) -> None:
+def scan_Planck_Unet(
+    model_path: str,
+    data_path: str,
+    out_path: str,
+    step: str,
+    device: str,
+    verbose: bool = True,
+    lfi_path: str = None,
+    model_prms: dict = {},
+) -> None:
     """Full scan for Planck.
 
     :param model_path: Path to model.
@@ -31,15 +39,29 @@ def scan_Planck_Unet(model_path: str, data_path: str, out_path: str, step: str, 
         os.mkdir(out_path)
     if step == "fast":
         print("Fast scan.")
-        fast_skan_sky_Planck(data_path, out_path, model_path, verbose=verbose, lfi_path=lfi_path,
-                             model_prms=model_prms)
+        fast_skan_sky_Planck(
+            data_path,
+            out_path,
+            model_path,
+            verbose=verbose,
+            lfi_path=lfi_path,
+            model_prms=model_prms,
+        )
     else:
         print(f"Slow scan with step {step}")
-        scan_sky_Planck(data_path, out_path, model_path, int(step), verbose=verbose,
-                        lfi_path=lfi_path)
+        scan_sky_Planck(
+            data_path,
+            out_path,
+            model_path,
+            int(step),
+            verbose=verbose,
+            lfi_path=lfi_path,
+        )
 
 
-def extract_cat_Planck(in_path: str, out_path: str, thr: str, verbose: bool = True) -> None:
+def extract_cat_Planck(
+    in_path: str, out_path: str, thr: str, verbose: bool = True
+) -> None:
     """Extract catalog.
 
     :param in_path: Input path to scans.
