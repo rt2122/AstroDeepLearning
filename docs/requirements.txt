@@ -9,3 +9,4 @@ tensorflow
 keras
 sphinx-argparse
 scikit-image
+argparse
