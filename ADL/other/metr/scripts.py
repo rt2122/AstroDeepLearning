@@ -142,6 +142,25 @@ def get_stats_with_range(
     selected_pix: List[int],
     out_path: str,
 ):
+    """get_stats_with_range.
+
+    :param det_cat:
+    :type det_cat: pd.DataFrame
+    :param true_cats:
+    :type true_cats: Dict[str, pd.DataFrame]
+    :param range_prm:
+    :type range_prm: str
+    :param thr_vals:
+    :type thr_vals: List[float]
+    :param rules:
+    :type rules: Dict[str, Callable]
+    :param spec_precision:
+    :type spec_precision: List[str]
+    :param selected_pix:
+    :type selected_pix: List[int]
+    :param out_path:
+    :type out_path: str
+    """
     stats_df = []
     for thr in thr_vals:
         rules[range_prm] = lambda x: x > thr

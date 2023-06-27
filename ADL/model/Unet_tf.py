@@ -269,7 +269,6 @@ def conv_block(
     :param padding: Padding type.
     :type padding: str
     """
-
     c = Conv2D(
         filters,
         kernel_size,
@@ -491,7 +490,9 @@ def Unet_model_old(
 
 class AdditionalValidationSets(Callback):
     """
-    Edited version form `here
+    Edited version.
+
+    from `here
     https://github.com/LucaCappelletti94/keras_validation_sets/blob/master/additional_validation_sets.py
     `_.
     """

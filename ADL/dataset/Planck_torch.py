@@ -1,3 +1,4 @@
+"""Module for pytorch models."""
 import torch
 from torch.utils.data import Sampler
 import numpy as np
@@ -15,9 +16,18 @@ class MyRotationTransform:
     """Rotate by one of the given angles."""
 
     def __init__(self, angles: List[float]):
+        """__init__.
+
+        :param angles: Angles.
+        :type angles: List[float]
+        """
         self.angles = angles
 
     def __call__(self, x):
+        """__call__.
+
+        :param x:
+        """
         angle = random.choice(self.angles)
         return TF.rotate(x, angle)
 
@@ -138,6 +148,8 @@ class Planck_Regression_Dataset(torch.utils.data.Dataset):
 
 
 class StratifiedSampler(Sampler[int]):
+    """StratifiedSampler."""
+
     def __init__(
         self,
         data_source: Planck_Regression_Dataset,
@@ -145,7 +157,18 @@ class StratifiedSampler(Sampler[int]):
         batch_size: int = 128,
         n_batches: int = 30,
     ):
-        self.data_source = data_source
+        """__init__.
+
+        :param data_source:
+        :type data_source: Planck_Regression_Dataset
+        :param n_bins:
+        :type n_bins: int
+        :param batch_size:
+        :type batch_size: int
+        :param n_batches:
+        :type n_batches: int
+        """
+        self.data_source = data_sourceADL / dataset / Planck_torch.py
         self.n_bins = n_bins
         target_df = data_source.target
         target_df["index"] = target_df.index
@@ -162,6 +185,10 @@ class StratifiedSampler(Sampler[int]):
         self.n_batches = n_batches
 
     def __iter__(self) -> Iterator[int]:
+        """Iterate.
+
+        :rtype: Iterator[int]
+        """
         sample = []
         for i in range(self.n_batches):
             sample.append(
@@ -173,4 +200,5 @@ class StratifiedSampler(Sampler[int]):
         return iter(sample["index"])
 
     def __len__(self):
+        """__len__."""
         return self.group_size * self.n_bins

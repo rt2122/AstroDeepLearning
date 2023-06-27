@@ -1,3 +1,4 @@
+"""Regression models for pytorch."""
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
@@ -403,6 +404,7 @@ class DeepEnsemble_MDN:
         plt.show()
 
     def save_metrics(self):
+        """save_metrics."""
         with open(os.path.join(self.model_save_path, "metrics.pkl"), "wb") as fd:
             pickle.dump(self.metric_vals, fd)
         with open(os.path.join(self.model_save_path, "loss.pkl"), "wb") as fd:
@@ -510,6 +512,17 @@ class DeepEnsemble_MDN:
     def calc_err(
         cls, mu: np.ndarray, sigma: np.ndarray, mode: np.ndarray, n_models: int
     ):
+        """calc_err.
+
+        :param mu:
+        :type mu: np.ndarray
+        :param sigma:
+        :type sigma: np.ndarray
+        :param mode:
+        :type mode: np.ndarray
+        :param n_models:
+        :type n_models: int
+        """
         sigma_a2 = 0
         sigma_e2 = 0
         for n in range(n_models):
@@ -525,6 +538,15 @@ class DeepEnsemble_MDN:
     def compare_M500(
         self, ax: matplotlib.axes, dataloader: DataLoader, label: str = ""
     ):
+        """compare_M500.
+
+        :param ax:
+        :type ax: matplotlib.axes
+        :param dataloader:
+        :type dataloader: DataLoader
+        :param label:
+        :type label: str
+        """
         epoch_gt, epoch_pi, epoch_mu, epoch_sigma, mode, sigma = self.predict(
             dataloader
         )
@@ -560,6 +582,11 @@ class DeepEnsemble_MDN:
 
 
 def sigma_nmad(true, preds):
+    """sigma_nmad.
+
+    :param true:
+    :param preds:
+    """
     diff = preds - true
     m = np.median(diff)
     return 1.48 * np.median(np.abs((diff - m) / (1 + true)))

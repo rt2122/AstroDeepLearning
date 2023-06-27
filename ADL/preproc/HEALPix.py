@@ -213,6 +213,7 @@ def draw_masks_and_save(
     radius: float = 5 / 60,
 ) -> None:
     """Draw masks for training.
+
     Specify "not_cluster" in catalog's name to put its objects on separate mask.
 
     :param cluster_cats_path: Directory with catalogs.
