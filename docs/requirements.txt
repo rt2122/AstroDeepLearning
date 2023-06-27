@@ -10,3 +10,5 @@ keras
 sphinx-argparse
 scikit-image
 argparse
+flake8
+pydocstyle

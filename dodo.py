@@ -27,7 +27,7 @@ def task_wheel():
 def task_style():
     """Check style with flake8."""
     return {
-            'actions': ['flake8 ADL']
+            'actions': ['black ADL']
            }
 
 
