@@ -11,15 +11,25 @@ def make_parser() -> argparse.ArgumentParser:
 
     :rtype: argparse.ArgumentParser
     """
-    parser = argparse.ArgumentParser(description="Preprocessing script for HFI Planck data.")
-    parser.add_argument("command", metavar="<command>",
-                        help="'preproc' for preparing HFI Planck data.\n"
-                             "'target' for generating masks and patches for Planck.")
-    parser.add_argument("--inpath", metavar="<inpath>", default=".",
-                        help="Input path.")
-    parser.add_argument("--outpath", metavar="<outpath>", default=".", help="Output path.")
-    parser.add_argument("--n_patches", metavar="<n_patches>", default="100000",
-                        help="Approximate amount of patches to generate.")
+    parser = argparse.ArgumentParser(
+        description="Preprocessing script for HFI Planck data."
+    )
+    parser.add_argument(
+        "command",
+        metavar="<command>",
+        help="'preproc' for preparing HFI Planck data.\n"
+        "'target' for generating masks and patches for Planck.",
+    )
+    parser.add_argument("--inpath", metavar="<inpath>", default=".", help="Input path.")
+    parser.add_argument(
+        "--outpath", metavar="<outpath>", default=".", help="Output path."
+    )
+    parser.add_argument(
+        "--n_patches",
+        metavar="<n_patches>",
+        default="100000",
+        help="Approximate amount of patches to generate.",
+    )
     return parser
 
 

@@ -4,7 +4,9 @@ from imgaug.augmenters import Augmenter
 from typing import Tuple
 
 
-def do_aug(images: np.ndarray, masks: np.ndarray, augmentation: Augmenter) -> Tuple[np.ndarray]:
+def do_aug(
+    images: np.ndarray, masks: np.ndarray, augmentation: Augmenter
+) -> Tuple[np.ndarray]:
     """Apply augmentation to images and masks.
 
     :param images: [n_batches, size, size, n_channels]-shaped array with images.
