@@ -16,7 +16,7 @@ class MyRotationTransform:
     """Rotate by one of the given angles."""
 
     def __init__(self, angles: List[float]):
-        """__init__.
+        """Initialize.
 
         :param angles: Angles.
         :type angles: List[float]
@@ -24,9 +24,9 @@ class MyRotationTransform:
         self.angles = angles
 
     def __call__(self, x):
-        """__call__.
+        """Perform the transformation.
 
-        :param x:
+        :param x: Tensor on which to apply the transformation.
         """
         angle = random.choice(self.angles)
         return TF.rotate(x, angle)
@@ -71,7 +71,7 @@ class Planck_Regression_Dataset(torch.utils.data.Dataset):
         )
 
     def _prepare(self):
-        """_prepare."""
+        """Load data."""
         self.data = {}
         for i in self.pix2:
             self.data[i] = np.load(os.path.join(self.data_path, f"{i}.npy")).astype(
@@ -98,9 +98,9 @@ class Planck_Regression_Dataset(torch.utils.data.Dataset):
         self.target = target
 
     def __getitem__(self, idx: int):
-        """__getitem__.
+        """Get data by index.
 
-        :param idx:
+        :param idx: Index.
         :type idx: int
         """
         line = self.target.iloc[idx]
@@ -116,11 +116,11 @@ class Planck_Regression_Dataset(torch.utils.data.Dataset):
         return image, line[self.reg_prm]
 
     def __len__(self):
-        """__len__."""
+        """Get size of dataset."""
         return len(self.target)
 
     def check_data(self, idx: int = 0):
-        """check_data.
+        """Check data with matplotlib.
 
         :param idx:
         :type idx: int
@@ -157,7 +157,7 @@ class StratifiedSampler(Sampler[int]):
         batch_size: int = 128,
         n_batches: int = 30,
     ):
-        """__init__.
+        """Initialize.
 
         :param data_source:
         :type data_source: Planck_Regression_Dataset
@@ -200,5 +200,5 @@ class StratifiedSampler(Sampler[int]):
         return iter(sample["index"])
 
     def __len__(self):
-        """__len__."""
+        """Size of dataset."""
         return self.group_size * self.n_bins

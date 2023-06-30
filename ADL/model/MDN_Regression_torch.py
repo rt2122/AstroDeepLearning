@@ -15,13 +15,13 @@ class ConvBlock(nn.Module):
     """ConvBlock."""
 
     def __init__(self, in_size, out_size, kernel_size=3, padding=1, stride=1):
-        """__init__.
+        """Initialize.
 
-        :param in_size:
-        :param out_size:
-        :param kernel_size:
-        :param padding:
-        :param stride:
+        :param in_size: Input size.
+        :param out_size: Ouput size.
+        :param kernel_size: Kernel size.
+        :param padding: Padding.
+        :param stride: Stride.
         """
         super(ConvBlock, self).__init__()
         self.conv = nn.Conv2d(
@@ -31,9 +31,9 @@ class ConvBlock(nn.Module):
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        """forward.
+        """Perform the convolution.
 
-        :param x:
+        :param x: Tensor on which to perform the convolution.
         """
         return self.relu(self.bn(self.conv(x)))
 
@@ -47,7 +47,7 @@ class MDN_Regression(nn.Module):
         p: float = 0.0,
         drop_out: float = 0.0,
     ):
-        """__init__.
+        """Initialize.
 
         :param sizes:
         :param p:
